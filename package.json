@@ -1,0 +1,20 @@
+{
+  "name": "faraday-orm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HOLTHOJ/faraday-orm.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "LGPL-2.1-or-later",
+  "bugs": {
+    "url": "https://github.com/HOLTHOJ/faraday-orm/issues"
+  },
+  "homepage": "https://github.com/HOLTHOJ/faraday-orm#readme"
+}
