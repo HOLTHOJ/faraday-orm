@@ -17,50 +17,34 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export type DBTypekeyLoader<T> = {
-    load: (data: string) => T | undefined
-    save: (data: T) => string | undefined
-};
+/**
+ * A serializer to store and load a DynamoDB AttributeMap into a Javascript object.
+ */
+export type ObjectSerializer<T extends object> = {
+    load: (data: DynamoDB.Types.AttributeMap) => T
+    save: (data: T) => DynamoDB.Types.AttributeMap
+}
 
-export const DBTypekeyConverter = <T>(type: DBTypekeyLoader<T>): DBConverter<T> => {
+/**
+ * The default DynamoDB converter for storing objects values as M attributes.
+ */
+export const ObjectConverter = <T extends object>(type: ObjectSerializer<T>): Converter<T> => {
 
     return {
         convertFrom(value: DynamoDB.AttributeValue | undefined): T | undefined {
-            // if (value && value.NULL) return null;
-            if (value && value.S) return type.load(value.S);
+            if (typeof value === "undefined") return undefined;
+            if (value.M) return type.load(value.M);
 
             return undefined;
         },
 
         convertTo(value: T | undefined): DynamoDB.AttributeValue | undefined {
-            // if (value === null) return {NULL: true};
             if (typeof value === "undefined") return undefined;
+            if (value === null) return undefined;
 
-            const val = type.save(value);
-            return (val) ? {S: val} : undefined;
-        }
-    }
-
-};
-
-export const DBTypekeyConverter2 = <T extends string>(types: T[]): DBConverter<T> => {
-
-    return {
-        convertFrom(value: DynamoDB.AttributeValue | undefined): T | undefined {
-            // if (value && value.NULL) return null;
-            if (value && value.S && types.includes(value.S as T)) return value.S as T;
-
-            return undefined;
-        },
-
-        convertTo(value: T | undefined): DynamoDB.AttributeValue | undefined {
-            // if (value === null) return {NULL: true};
-            if (typeof value === "undefined") return undefined;
-            if (!types.includes(value)) return undefined;
-
-            return {S: value};
+            return {M: type.save(value)};
         }
     }
 

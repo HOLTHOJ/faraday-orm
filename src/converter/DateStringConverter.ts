@@ -17,24 +17,30 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export const DBBooleanConverter: DBConverter<boolean> = {
+/**
+ * The default DynamoDB converter for storing Date values as String attributes.
+ * The ISO string value of the date will be stored as a String attribute.
+ *
+ * @see Date#toISOString()
+ */
+export const DateStringConverter: Converter<Date> = {
 
-    convertFrom(value?: DynamoDB.AttributeValue | undefined): boolean | undefined {
-        if (value && value.BOOL) return value.BOOL;
-        if (value && value.S) return Boolean(value.S);
-        if (value && value.N) return Boolean(value.N);
-        // if (value && value.NULL) return null;
+    convertFrom(value: DynamoDB.AttributeValue | undefined): Date | undefined {
+        if (typeof value === "undefined") return undefined;
+
+        if (value.N) return new Date(Number(value.N));
+        if (value.S) return new Date(value.S);
 
         return undefined;
     },
 
-    convertTo(value: boolean | undefined): DynamoDB.AttributeValue | undefined {
-        // if (value === null) return {NULL: true};
+    convertTo(value: Date | undefined): DynamoDB.AttributeValue | undefined {
         if (typeof value === "undefined") return undefined;
+        if (value === null) return undefined;
 
-        return {BOOL: value};
+        return {N: new Date(value).toISOString()};
     }
 
 };

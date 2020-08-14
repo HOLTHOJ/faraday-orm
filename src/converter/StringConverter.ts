@@ -17,24 +17,25 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export const DBCompositeStringConverter = (delimiter: string = "/"): DBConverter<string[]> => {
+/**
+ * The default DynamoDB converter for storing string values as S attributes.
+ */
+export const StringConverter: Converter<string> = {
 
-    return {
-        convertFrom(value: DynamoDB.AttributeValue | undefined): string[] | undefined {
-            // if (value && value.NULL) return null;
-            if (value && value.S) return value.S.split(delimiter);
+    convertFrom(value: DynamoDB.AttributeValue | undefined): string | undefined {
+        if (typeof value === "undefined") return undefined;
+        if (value && value.S) return value.S;
 
-            return undefined;
-        },
+        return undefined;
+    },
 
-        convertTo(value: string[] | undefined): DynamoDB.AttributeValue | undefined {
-            // if (value === null) return {NULL: true};
-            if (typeof value === "undefined") return undefined;
+    convertTo(value: string | undefined): DynamoDB.AttributeValue | undefined {
+        if (typeof value === "undefined") return undefined;
+        if (value === null) return undefined;
 
-            return {S: value.join(delimiter)};
-        }
+        return {S: value};
     }
 
 };

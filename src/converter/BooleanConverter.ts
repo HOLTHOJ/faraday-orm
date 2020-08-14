@@ -17,24 +17,29 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export const DBDateConverter: DBConverter<Date> = {
+/**
+ * The default DynamoDB converter for storing boolean values as B attributes.
+ *
+ * @see BooleanConstructor
+ */
+export const BooleanConverter: Converter<boolean> = {
 
-    convertFrom(value: DynamoDB.AttributeValue | undefined): Date | undefined {
-        // if (value && value.NULL) return null;
-        if (value && value.N) return new Date(Number(value.N));
-        if (value && value.S) return new Date(value.S);
+    convertFrom(value?: DynamoDB.AttributeValue | undefined): boolean | undefined {
+        if (typeof value === "undefined") return undefined;
+        if (value.BOOL) return value.BOOL;
+        if (value.S) return Boolean(value.S);
+        if (value.N) return Boolean(value.N);
 
         return undefined;
     },
 
-    convertTo(value: Date | undefined): DynamoDB.AttributeValue | undefined {
-        // if (value === null) return {NULL: true};
+    convertTo(value: boolean | undefined): DynamoDB.AttributeValue | undefined {
         if (typeof value === "undefined") return undefined;
-        if (typeof value === "undefined") return undefined;
+        if (value === null) return undefined;
 
-        return {N: new Date(value).getTime().toString()};
+        return {BOOL: value};
     }
 
 };

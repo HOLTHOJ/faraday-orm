@@ -17,22 +17,30 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export const DBStringSetConverter: DBConverter<string[]> = {
+/**
+ * The default DynamoDB converter for storing Date values as Number attributes.
+ * The Time value of the date will be stored as a Number attribute.
+ *
+ * @see Date#getTime()
+ */
+export const DateNumberConverter: Converter<Date> = {
 
-    convertFrom(value: DynamoDB.AttributeValue | undefined): string[] | undefined {
-        // if (value && value.NULL) return null;
-        if (value && value.SS) return value.SS;
+    convertFrom(value: DynamoDB.AttributeValue | undefined): Date | undefined {
+        if (typeof value === "undefined") return undefined;
+
+        if (value.N) return new Date(Number(value.N));
+        if (value.S) return new Date(value.S);
 
         return undefined;
     },
 
-    convertTo(value: string[] | undefined): DynamoDB.AttributeValue | undefined {
-        // if (value === null) return {NULL: true};
+    convertTo(value: Date | undefined): DynamoDB.AttributeValue | undefined {
         if (typeof value === "undefined") return undefined;
+        if (value === null) return undefined;
 
-        return {SS: value};
+        return {N: new Date(value).getTime().toString()};
     }
 
 };

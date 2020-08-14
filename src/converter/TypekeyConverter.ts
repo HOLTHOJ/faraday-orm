@@ -17,28 +17,31 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export type DBMapLoader<T> = {
-    load: (data: DynamoDB.Types.AttributeMap) => T
-    save: (data: T) => DynamoDB.Types.AttributeMap
-}
-
-export const DBMapConverter = <T>(type: DBMapLoader<T>): DBConverter<T> => {
+/**
+ * The default DynamoDB converter for storing typekey values as S attributes.
+ *
+ * Typekeys are TypeScript string union types; e.g.
+ * <pre>
+ * export type Status = "ON" | "OFF";
+ * </pre>
+ */
+export const TypekeyConverter = <T extends string>(types: T[]): Converter<T> => {
 
     return {
         convertFrom(value: DynamoDB.AttributeValue | undefined): T | undefined {
-            // if (value && value.NULL) return null;
-            if (value && value.M) return type.load(value.M);
+            if (typeof value === "undefined") return undefined;
+            if (value.S && types.includes(value.S as T)) return value.S as T;
 
             return undefined;
         },
 
         convertTo(value: T | undefined): DynamoDB.AttributeValue | undefined {
-            // if (value === null) return {NULL: true};
             if (typeof value === "undefined") return undefined;
+            if (value === null) return undefined;
 
-            return {M: type.save(value)};
+            return (types.includes(value)) ? {S: value} : undefined;
         }
     }
 

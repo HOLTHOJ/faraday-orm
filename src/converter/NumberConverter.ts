@@ -17,22 +17,27 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export const DBStringConverter: DBConverter<string> = {
+/**
+ * The default DynamoDB converter for storing number values as N attributes.
+ *
+ * @see NumberConstructor
+ */
+export const NumberConverter: Converter<number> = {
 
-    convertFrom(value: DynamoDB.AttributeValue | undefined): string | undefined {
-        // if (value && value.NULL) return null;
-        if (value && value.S) return value.S;
+    convertFrom(value: DynamoDB.AttributeValue | undefined): number | undefined {
+        if (typeof value === "undefined") return undefined;
+        if (value.N) return Number(value.N);
 
         return undefined;
     },
 
-    convertTo(value: string | undefined): DynamoDB.AttributeValue | undefined {
-        // if (value === null) return {NULL: true};
+    convertTo(value: number | undefined): DynamoDB.AttributeValue | undefined {
         if (typeof value === "undefined") return undefined;
+        if (value === null) return undefined;
 
-        return {S: value};
+        return {N: value.toString()};
     }
 
 };

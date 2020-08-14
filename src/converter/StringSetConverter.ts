@@ -17,22 +17,28 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export const DBNumberConverter: DBConverter<number> = {
+/**
+ * The default DynamoDB converter for storing a string array values as SS attribute.
+ *
+ * The DynamoDB spec says that the SS attribute cannot be an empty string. This is, however,
+ * not validated by this converter and will instead be reported as an error by the DynamoDB layer itself.
+ */
+export const StringSetConverter: Converter<string[]> = {
 
-    convertFrom(value: DynamoDB.AttributeValue | undefined): number | undefined {
-        // if (value && value.NULL) return null;
-        if (value && value.N) return Number(value.N);
+    convertFrom(value: DynamoDB.AttributeValue | undefined): string[] | undefined {
+        if (typeof value === "undefined") return undefined;
+        if (value.SS) return value.SS;
 
         return undefined;
     },
 
-    convertTo(value: number | undefined): DynamoDB.AttributeValue | undefined {
-        // if (value === null) return {NULL: true};
+    convertTo(value: string[] | undefined): DynamoDB.AttributeValue | undefined {
         if (typeof value === "undefined") return undefined;
+        if (value === null) return undefined;
 
-        return {N: value.toString()};
+        return {SS: value};
     }
 
 };
