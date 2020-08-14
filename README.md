@@ -1,9 +1,12 @@
+STATUS: in development (no release yet)
+
 # Faraday-orm
 DynamoDB is a noSQL database, which means its data consists of "documents". 
 Documents do not have a strongly defined structure, and apart from the indexable columns, 
 no other columns are defined at database level.
 
-The orm project makes use of Typescript to create strongly defined model classes that represent the data stored in the database.
+The Faraday-ORM project makes use of Typescript classes and decorators to create strongly typed models 
+that represent the data stored in the DynamoDB noSQL database. 
 This allows the developers to validate that the data stored and retrieved is consistent with the desired datamodel.
 
 * [Entity datamodel](#entity-datamodel)
@@ -59,7 +62,7 @@ export class File {
     @Interal("updateTime", DateNumberConverter)
     public updateTime: Date = UNDEFINED
 
-    @Interal("updateTime", StringConverter)
+    @Interal("createdBy", StringConverter)
     public createdBy: string = UNDEFINED
     
     public createdByFirstName: string = UNDEFINED
@@ -135,7 +138,7 @@ export class DBFileExplorerView {
 
     public id: string = UNDEFINED;
     
-    @ViewColumn() // The name is denormalized onto the view.
+    @ViewColumn() // This field is denormalized onto the view.
     public name: string = UNDEFINED;
 
     @ViewSource(DBFile, ":dirId", ":name/:id")
