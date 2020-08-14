@@ -1,6 +1,6 @@
 {
   "name": "faraday-orm",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "ORM framework for the DynamoDB database.",
   "main": "index.js",
   "scripts": {
