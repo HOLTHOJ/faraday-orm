@@ -1,0 +1,9 @@
+{
+  "rootDir": "test",
+  "testTimeout": 100000,
+  "verbose": false,
+  "silent": false,
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "globalSetup": "<rootDir>/_setup.js"
+}
