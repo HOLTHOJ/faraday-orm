@@ -10,19 +10,22 @@ that represent the data stored in the DynamoDB noSQL database.
 This allows the developers to validate that the data stored and retrieved is consistent with the desired datamodel.
 
 * [Entity datamodel](#entity-datamodel)
-* [Entitymanager](#entitymanager)
+* [Entity manager](#entity-manager)
 * [View datamodel](#view-datamodel)
-* [Viewmanager](#viewmanager)
+* [View manager](#view-manager)
 * [About](#about)
 
 ## Entity datamodel
+
+Full documentation : [here](src/entity#entity-datamodel)
+
 **Entities** are the items that are stored in the database. 
 They are represented by a plain old javascript class and a Typescript annotation (decorator).
 The Entity name parameter is stored in each item and allows the framework 
 to identify which model the items needs to be loaded into.
 
 Entities are required to have an **Id**, so the items can be stored and retrieved.
-Having exactly one PK (primary key) is required, defining a SK (sort key) is optional and depends on your database setup.
+Having exactly one PK (partition key) is required, defining a SK (sort key) is optional and depends on your database setup.
 
 **Columns** represent the attributes that are stored and retrieved from the DB. 
 A column is defined by its database name and converter. 
@@ -96,7 +99,10 @@ export class File {
 }
 ``` 
 
-## Entitymanager
+## Entity manager
+
+Full documentation : [here](src/entity#entity-manager)
+
 ::todo
 
 ## View datamodel
@@ -160,7 +166,7 @@ export class DBFileExplorerView {
 }
 ```
 
-## Viewmanager
+## View manager
 ::todo
 
 ## About
