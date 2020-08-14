@@ -16,10 +16,10 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {DBConverter} from "../../converter/DBConverter";
+import {Converter} from "../../converter/DBConverter";
 
 /** */
-export type ColumnDescription<T = any> = { name: string, converter: DBConverter<T> }
+export type ColumnDescription<T = any> = { name: string, converter: Converter<T> }
 
 /**
  * The definition of a database column defined on an Entity class.
@@ -33,7 +33,7 @@ export type ColumnDef<T = any> = {
     name: string,
 
     /** The converter needed to convert to DynamoDB Attribute. */
-    converter: DBConverter<T>,
+    converter: Converter<T>,
 
     /** Indicates this is a required column. */
     required: boolean,

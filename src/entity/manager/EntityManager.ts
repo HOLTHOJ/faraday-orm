@@ -17,7 +17,7 @@
  */
 
 import {AttributeMapper} from "../../util/AttributeMapper";
-import {DBStringConverter} from "../../converter/DBStringConverter";
+import {StringConverter} from "../../converter/DBStringConverter";
 import {DynamoDB} from "aws-sdk";
 import {req} from "../../util/Req";
 import {ENTITY_DEF, ENTITY_REPO, EntityType} from "../annotation/Entity";
@@ -38,7 +38,7 @@ export class EntityManager<E extends object> {
     public static CBACK_BEFORE_COMMIT = new Array<(record: EntityProxy, item: AttributeMapper) => void>();
     public static CBACK_AFTER_COMMIT = new Array<(record: EntityProxy, item: AttributeMapper) => void>();
 
-    public static TYPE_COLUMN: ColumnDescription<string> = {name: "$type", converter: DBStringConverter};
+    public static TYPE_COLUMN: ColumnDescription<string> = {name: "$type", converter: StringConverter};
 
 
     /***************************************************************************************

@@ -17,8 +17,8 @@
  */
 
 import {ColumnDef} from "./Column";
-import {DBConverter} from "../../converter/DBConverter";
-import {DBStringConverter} from "../../converter/DBStringConverter";
+import {Converter} from "../../converter/DBConverter";
+import {StringConverter} from "../../converter/DBStringConverter";
 
 /** The type of id column. */
 export type IdType = "PK" | "SK";
@@ -40,7 +40,7 @@ export const ENTITY_IDS = new Map<Function, IdColumnDef[]>();
  * @param columnConverter
  * @param generator
  */
-export function Id(idType: IdType, columnName: string, columnConverter: DBConverter<string> = DBStringConverter, generator ?: IdGenerator) {
+export function Id(idType: IdType, columnName: string, columnConverter: Converter<string> = StringConverter, generator ?: IdGenerator) {
     return (target: any, propertyKey: string) => {
 
         const columnDef: IdColumnDef = {

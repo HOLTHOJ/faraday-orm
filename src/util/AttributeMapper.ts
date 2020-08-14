@@ -17,11 +17,11 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "../converter/DBConverter";
+import {Converter} from "../converter/DBConverter";
 
 export type ColumnDef<T> = {
     readonly name: string;
-    readonly converter: DBConverter<T>;
+    readonly converter: Converter<T>;
     // readonly defaultValue?: () => T;
     // readonly required?: boolean;
 }

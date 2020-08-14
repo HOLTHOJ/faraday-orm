@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {DBConverter} from "../../converter/DBConverter";
-import {DBStringConverter} from "../../converter/DBStringConverter";
+import {Converter} from "../../converter/DBConverter";
+import {StringConverter} from "../../converter/DBStringConverter";
 
 /** */
 export type ViewIdType = "PK" | "SK";
@@ -27,7 +27,7 @@ export type ViewIdColumnDef = {
     propName: string,
     idType: ViewIdType,
     name: string,
-    converter: DBConverter<string>,
+    converter: Converter<string>,
 };
 
 /** */
@@ -39,7 +39,7 @@ export const VIEW_IDS = new Map<Function, ViewIdColumnDef[]>();
  * @param columnName
  * @param columnConverter
  */
-export function ViewId<T>(idType: ViewIdType, columnName: string, columnConverter: DBConverter<string> = DBStringConverter) {
+export function ViewId<T>(idType: ViewIdType, columnName: string, columnConverter: Converter<string> = StringConverter) {
     return (target: any, propertyKey: string) => {
         const columnDef: ViewIdColumnDef = {
             propName: propertyKey,

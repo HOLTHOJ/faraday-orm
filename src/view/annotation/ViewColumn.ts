@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {DBConverter} from "../../converter/DBConverter";
-import {DBStringConverter} from "../../converter/DBStringConverter";
+import {Converter} from "../../converter/DBConverter";
+import {StringConverter} from "../../converter/DBStringConverter";
 
 /**
  *
@@ -26,7 +26,7 @@ export type ViewColumnDef = {
     propName: string,
     name: string,
     required?: boolean,
-    converter: DBConverter<string>,
+    converter: Converter<string>,
     // converter?: ViewColumnConverter<any, any>,
 };
 
@@ -55,7 +55,7 @@ export type ViewColumnConverter<E extends ViewColumnType, T> = {
  *                  then the property's name will be used.
  * @param converter An optional converter to transform the value to a primitive so that it can be exported as JSON.
  */
-export function ViewColumn<E extends ViewColumnType, T = any>(name?: string, converter: DBConverter<string> = DBStringConverter/*, converter ?: ViewColumnConverter<E, T>*/) {
+export function ViewColumn<E extends ViewColumnType, T = any>(name?: string, converter: Converter<string> = StringConverter/*, converter ?: ViewColumnConverter<E, T>*/) {
 
     return (target: any, propertyKey: string, descriptor?: TypedPropertyDescriptor<T>) => {
 

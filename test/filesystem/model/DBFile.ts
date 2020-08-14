@@ -19,16 +19,16 @@
 import {Entity} from "../../../src/entity/annotation/Entity";
 import {Callback, CallbackOperation} from "../../../src/entity/annotation/Callback";
 import {UNDEFINED} from "../../../src/util/Undefined";
-import {DBDateConverter} from "../../../src/converter/DBDateConverter";
+import {DateConverter} from "../../../src/converter/DBDateConverter";
 import {Internal} from "../../../src/entity/annotation/Internal";
 
 @Entity("file")
 export class DBFile {
 
-    @Internal({name: "ct", converter: DBDateConverter}, true)
+    @Internal({name: "ct", converter: DateConverter}, true)
     public createTime: Date = UNDEFINED;
 
-    @Internal({name: "lut", converter: DBDateConverter}, true)
+    @Internal({name: "lut", converter: DateConverter}, true)
     public lastUpdateTime: Date = UNDEFINED;
 
     @Callback()
