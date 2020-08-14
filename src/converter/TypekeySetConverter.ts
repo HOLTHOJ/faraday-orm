@@ -17,32 +17,36 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export type DBTypekeySetLoader<T> = {
-    load: (data: DynamoDB.Types.StringAttributeValue) => T | undefined
-    save: (data: T) => DynamoDB.Types.StringAttributeValue | undefined
-};
-
-export const DBTypekeySetConverter = <T>(type: DBTypekeySetLoader<T>): DBConverter<T[]> => {
+/**
+ * The default DynamoDB converter for storing typekey set values as SS attributes.
+ *
+ * Typekeys are TypeScript string union types; e.g.
+ * <pre>
+ * export type Status = "ON" | "OFF";
+ * </pre>
+ *
+ * The DynamoDB spec says that the SS attribute cannot be an empty string. This is, however,
+ * not validated by this converter and will instead be reported as an error by the DynamoDB layer itself.
+ */
+export const TypekeySetConverter = <T extends string>(types: T[]): Converter<T[]> => {
     return {
         convertFrom(value: DynamoDB.AttributeValue | undefined): T[] | undefined {
-            // if (value && value.NULL) return null;
-            if (value && value.SS) return value.SS.reduce((arr, elt) => {
-                const tk = type.load(elt);
-                return (tk) ? arr.concat(tk) : arr;
+            if (typeof value === "undefined") return undefined;
+            if (value.SS) return value.SS.reduce((arr, elt) => {
+                return (types.includes(elt as T)) ? arr.concat(elt as T) : arr;
             }, new Array<T>());
 
             return undefined;
         },
 
         convertTo(value: T[] | undefined): DynamoDB.AttributeValue | undefined {
-            // if (value === null) return {NULL: true};
             if (typeof value === "undefined") return undefined;
+            if (value === null) return undefined;
 
             const ss = value.reduce((arr, elt) => {
-                const tk = type.save(elt);
-                return (tk) ? arr.concat(tk) : arr;
+                return (types.includes(elt)) ? arr.concat(elt) : arr;
             }, new Array<DynamoDB.Types.StringAttributeValue>());
 
             return {SS: ss};

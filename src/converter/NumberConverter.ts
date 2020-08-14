@@ -17,24 +17,27 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export const DBDateConverter: DBConverter<Date> = {
+/**
+ * The default DynamoDB converter for storing number values as N attributes.
+ *
+ * @see NumberConstructor
+ */
+export const NumberConverter: Converter<number> = {
 
-    convertFrom(value: DynamoDB.AttributeValue | undefined): Date | undefined {
-        // if (value && value.NULL) return null;
-        if (value && value.N) return new Date(Number(value.N));
-        if (value && value.S) return new Date(value.S);
+    convertFrom(value: DynamoDB.AttributeValue | undefined): number | undefined {
+        if (typeof value === "undefined") return undefined;
+        if (value.N) return Number(value.N);
 
         return undefined;
     },
 
-    convertTo(value: Date | undefined): DynamoDB.AttributeValue | undefined {
-        // if (value === null) return {NULL: true};
+    convertTo(value: number | undefined): DynamoDB.AttributeValue | undefined {
         if (typeof value === "undefined") return undefined;
-        if (typeof value === "undefined") return undefined;
+        if (value === null) return undefined;
 
-        return {N: new Date(value).getTime().toString()};
+        return {N: value.toString()};
     }
 
 };

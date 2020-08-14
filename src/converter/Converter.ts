@@ -18,10 +18,28 @@
 
 import {DynamoDB} from "aws-sdk";
 
-export type DBConverter<T> = {
+/**
+ * A DynamoDB converter to convert javascript data types from/to DynamoDB Attribute types.
+ * This will be used by the framework to read/write any database value into the Javascript model.
+ *
+ * This gives us more control over the data conversions than using the DynamoDB DocumentClient API.
+ *
+ * By default attributes that are found in the database that do not correspond to the expected type are ignored.
+ */
+export type Converter<T> = {
 
+    /**
+     * Reads the DynamoDB Attribute value into a Javascript data type.
+     *
+     * @param value The raw value as it was retrieved from the database.
+     */
     convertFrom(value: DynamoDB.AttributeValue | undefined): T | undefined;
 
+    /**
+     * Writes the Javascript data type to a DynamoDB Attribute value.
+     *
+     * @param value The value from the Entity model.
+     */
     convertTo(value: T | undefined): DynamoDB.AttributeValue | undefined;
 
 }

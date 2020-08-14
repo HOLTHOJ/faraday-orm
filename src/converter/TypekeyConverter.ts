@@ -17,24 +17,32 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
 
-export const DBBooleanConverter: DBConverter<boolean> = {
+/**
+ * The default DynamoDB converter for storing typekey values as S attributes.
+ *
+ * Typekeys are TypeScript string union types; e.g.
+ * <pre>
+ * export type Status = "ON" | "OFF";
+ * </pre>
+ */
+export const TypekeyConverter = <T extends string>(types: T[]): Converter<T> => {
 
-    convertFrom(value?: DynamoDB.AttributeValue | undefined): boolean | undefined {
-        if (value && value.BOOL) return value.BOOL;
-        if (value && value.S) return Boolean(value.S);
-        if (value && value.N) return Boolean(value.N);
-        // if (value && value.NULL) return null;
+    return {
+        convertFrom(value: DynamoDB.AttributeValue | undefined): T | undefined {
+            if (typeof value === "undefined") return undefined;
+            if (value.S && types.includes(value.S as T)) return value.S as T;
 
-        return undefined;
-    },
+            return undefined;
+        },
 
-    convertTo(value: boolean | undefined): DynamoDB.AttributeValue | undefined {
-        // if (value === null) return {NULL: true};
-        if (typeof value === "undefined") return undefined;
+        convertTo(value: T | undefined): DynamoDB.AttributeValue | undefined {
+            if (typeof value === "undefined") return undefined;
+            if (value === null) return undefined;
 
-        return {BOOL: value};
+            return (types.includes(value)) ? {S: value} : undefined;
+        }
     }
 
 };

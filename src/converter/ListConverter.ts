@@ -17,28 +17,39 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {DBConverter} from "./DBConverter";
+import {Converter} from "./Converter";
+import {AttributeValue} from "aws-sdk/clients/dynamodb";
 
-export type DBListLoader<T> = {
-    load: (data: DynamoDB.Types.AttributeValue) => T
-    save: (data: T) => DynamoDB.Types.AttributeValue
-};
-
-export const DBListConverter = <T>(type: DBListLoader<T>): DBConverter<T[]> => {
+/**
+ * The default DynamoDB converter for storing a List of values as a List attribute.
+ *
+ * @param converter The converter used to convert each individual item of the collection.
+ *                  If the converter returns UNDEFINED, then the item will be ignored.
+ */
+export const ListConverter = <T>(converter: Converter<T>): Converter<T[]> => {
 
     return {
         convertFrom(value: DynamoDB.AttributeValue | undefined): T[] | undefined {
-            // if (value && value.NULL) return null;
-            if (value && value.L) return value.L.map((elt) => type.load(elt));
+            if (typeof value === "undefined") return undefined;
+
+            if (value.L) return value.L.reduce((list, elt) => {
+                const val = converter.convertFrom(elt);
+                return (typeof val === "undefined") ? list : list.concat(val);
+            }, new Array<T>());
 
             return undefined;
         },
 
         convertTo(value: T[] | undefined): DynamoDB.AttributeValue | undefined {
-            // if (value === null) return {NULL: true};
+            if (value === null) return undefined;
             if (typeof value === "undefined") return undefined;
 
-            return {L: value.map((elt) => type.save(elt))};
+            return {
+                L: value.reduce((list, elt) => {
+                    const val = converter.convertTo(elt);
+                    return (typeof val === "undefined") ? list : list.concat(val);
+                }, new Array<AttributeValue>())
+            };
         }
 
     }
