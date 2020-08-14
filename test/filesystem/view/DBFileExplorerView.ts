@@ -16,9 +16,45 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {View} from "../../../src/view";
+import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../src/view";
+import {UNDEFINED} from "../../../src/util/Undefined";
+import {DBFile} from "../model/DBFile";
+import {DBFolder} from "../model/DBFolder";
 
-@View("GSI", "gsi1", "PROJECTED_ALL")
+@View("GSI", "explorer-index")
+@ViewQuery("list-all", ":dirId")
+@ViewQuery("filter-name", ":dirId", ":name", "BEGINS_WITH")
 export class DBFileExplorerView {
+
+    @ViewId("PK", "dir")
+    public dirId: string = UNDEFINED;
+
+    @ViewId("SK", "explorer")
+    public explorer: string = UNDEFINED;
+
+    @ViewColumn()
+    public file: DBFile = UNDEFINED;
+
+    @ViewColumn()
+    public folder: DBFolder = UNDEFINED;
+
+    public id: string = UNDEFINED;
+    public name: string = UNDEFINED;
+
+    @ViewSource(DBFile, ":dirId", ":name/:id")
+    public loadFile(value: DBFile) {
+        this.file = value;
+        this.dirId = value.dirId;
+        this.id = value.fileId;
+        this.name = value.fileName;
+    }
+
+    @ViewSource(DBFolder, ":dirId", ":name/:id")
+    public loadFolder(value: DBFolder) {
+        this.folder = value;
+        this.dirId = value.dirId;
+        this.id = value.folderId;
+        this.name = value.folderName;
+    }
 
 }

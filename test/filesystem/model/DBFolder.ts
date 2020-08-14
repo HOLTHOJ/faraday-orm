@@ -17,8 +17,20 @@
  */
 
 import {Entity} from "../../../src/entity/annotation/Entity";
+import {Column, Id} from "../../../src/entity";
+import {UNDEFINED} from "../../../src/util/Undefined";
+import {StringConverter} from "../../../src/converter/StringConverter";
 
 @Entity("folder")
 export class DBFolder {
+
+    @Id("PK", "dir")
+    public dirId: string = UNDEFINED
+
+    @Id("SK", "id")
+    public folderId: string = UNDEFINED
+
+    @Column("folderName", StringConverter)
+    public folderName: string = UNDEFINED
 
 }

@@ -16,28 +16,40 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Entity} from "../../../src/entity/annotation/Entity";
-import {Callback, CallbackOperation} from "../../../src/entity/annotation/Callback";
 import {UNDEFINED} from "../../../src/util/Undefined";
-import {DateConverter} from "../../../src/converter/DBDateConverter";
-import {Internal} from "../../../src/entity/annotation/Internal";
+import {StringConverter} from "../../../src/converter/StringConverter";
+import {DateNumberConverter} from "../../../src/converter/DateNumberConverter";
+import {Callback, CallbackOperation, Column, Entity, Id, Internal} from "../../../src/entity";
 
 @Entity("file")
 export class DBFile {
 
-    @Internal({name: "ct", converter: DateConverter}, true)
+    @Id("PK", "dir")
+    public dirId: string = UNDEFINED
+
+    @Id("SK", "id")
+    public fileId: string = UNDEFINED
+
+    @Column({name: "fileName", converter: StringConverter})
+    public fileName: string = UNDEFINED
+
+    @Column({name: "mimeType", converter: StringConverter})
+    public mimeType: string = UNDEFINED
+
+    @Internal({name: "ct", converter: DateNumberConverter}, true)
     public createTime: Date = UNDEFINED;
 
-    @Internal({name: "lut", converter: DateConverter}, true)
+    @Internal({name: "lut", converter: DateNumberConverter}, true)
     public lastUpdateTime: Date = UNDEFINED;
 
     @Callback()
     updateTimestamp(operation: CallbackOperation) {
-        if (operation !== "GET" && operation !== "LOAD") {
-            this.lastUpdateTime = new Date();
-            if (operation === "INSERT") {
+        switch (operation) {
+            case "INSERT":
                 this.createTime = new Date();
-            }
+            case "UPDATE":
+            case "DELETE":
+                this.lastUpdateTime = new Date();
         }
     }
 }
