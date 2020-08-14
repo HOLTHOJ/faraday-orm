@@ -42,7 +42,7 @@ export class DBFile {
     @Id("SK", "id")
     public id : string = UNDEFINED
 
-    @Column("mime-type", DBStringConverter)
+    @Column("mime-type", StringConverter)
     public mimeType: string = UNDEFINED
 
 }
