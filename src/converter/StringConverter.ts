@@ -26,7 +26,7 @@ export const StringConverter: Converter<string> = {
 
     convertFrom(value: DynamoDB.AttributeValue | undefined): string | undefined {
         if (typeof value === "undefined") return undefined;
-        if (value && value.S) return value.S;
+        if (value.S) return value.S;
 
         return undefined;
     },
