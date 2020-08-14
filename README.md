@@ -50,26 +50,27 @@ It also avoids having to add the `| undefined` union type each field.
 @Entity("file")
 export class File {
     
-    @Id("PK", "dir")
-    public dirId: string = UNDEFINED    
+    public account: string = UNDEFINED
 
-    @Id("SK", "id")
+    public directory: string = UNDEFINED
+
+    @Id("PK", "pk")
+    public parentId: string = UNDEFINED
+
+    @Id("SK", "sk")
     public fileId: string = UNDEFINED
 
-    @Column("fileName", StringConverter)
+    @Column("fileName", StringConverter, true)
     public fileName: string = UNDEFINED
-    
-    @Interal("createTime", DateNumberConverter)
-    public createTime: Date = UNDEFINED
 
-    @Interal("updateTime", DateNumberConverter)
-    public updateTime: Date = UNDEFINED
+    @Column("mimeType", StringConverter)
+    public mimeType: string = UNDEFINED
 
-    @Interal("createdBy", StringConverter)
-    public createdBy: string = UNDEFINED
-    
-    public createdByFirstName: string = UNDEFINED
-    public createdByLastName: string = UNDEFINED
+    @Internal("ct", DateNumberConverter, true)
+    public createTime: Date = UNDEFINED;
+
+    @Internal("ut", DateNumberConverter, true)
+    public lastUpdateTime: Date = UNDEFINED;
 
     @Callback()
     updateTimestamp(operation: CallbackOperation) {
@@ -78,24 +79,23 @@ export class File {
                 this.createTime = new Date();
             case "UPDATE":
             case "DELETE":
-                this.updateTime = new Date();
+                this.lastUpdateTime = new Date();
         }
     }
-    
+
     @Callback()
-    compositeContactField(operation: CallbackOperation) {
+    compositeIds(operation: CallbackOperation) {
         switch (operation) {
             case "LOAD":
-                const [fn, ls] = this.createdBy.split("/")
-                this.createdByFirstName = fn;
-                this.createdByLastName = ln;
+                const [account, directory] = this.parentId.split("/")
+                this.account = account;
+                this.directory = directory;
                 break;
             default:
-                this.createdBy = [this.createdByFirstName, this.createdByLastName].join("/")
+                this.parentId = [this.account, this.directory].join("/");
+                break;
         }
-    }   
-  
-
+    }
 }
 ``` 
 
