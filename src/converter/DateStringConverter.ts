@@ -20,7 +20,7 @@ import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
 
 /**
- * The default DynamoDB converter for storing Date values as String attributes.
+ * The default DynamoDB converter for storing Date values as S attributes.
  * The ISO string value of the date will be stored as a String attribute.
  *
  * @see Date#toISOString()

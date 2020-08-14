@@ -20,7 +20,7 @@ import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
 
 /**
- * The default DynamoDB converter for storing Date values as Number attributes.
+ * The default DynamoDB converter for storing Date values as N attributes.
  * The Time value of the date will be stored as a Number attribute.
  *
  * @see Date#getTime()

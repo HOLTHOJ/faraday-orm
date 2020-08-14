@@ -21,7 +21,7 @@ import {Converter} from "./Converter";
 import {AttributeValue} from "aws-sdk/clients/dynamodb";
 
 /**
- * The default DynamoDB converter for storing a List of values as a List attribute.
+ * The default DynamoDB converter for storing a List of values as a L attribute.
  *
  * @param converter The converter used to convert each individual item of the collection.
  *                  If the converter returns UNDEFINED, then the item will be ignored.
