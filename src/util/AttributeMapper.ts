@@ -17,7 +17,7 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {Converter} from "../converter/DBConverter";
+import {Converter} from "../converter/Converter";
 
 export type ColumnDef<T> = {
     readonly name: string;

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Converter} from "../../converter/DBConverter";
+import {Converter} from "../../converter/Converter";
 
 /** */
 export type ColumnDescription<T = any> = { name: string, converter: Converter<T> }

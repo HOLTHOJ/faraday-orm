@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Converter} from "../../converter/DBConverter";
-import {StringConverter} from "../../converter/DBStringConverter";
+import {Converter} from "../../converter/Converter";
+import {StringConverter} from "../../converter/StringConverter";
 
 /** */
 export type ViewIdType = "PK" | "SK";

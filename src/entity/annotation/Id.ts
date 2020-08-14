@@ -17,8 +17,8 @@
  */
 
 import {ColumnDef} from "./Column";
-import {Converter} from "../../converter/DBConverter";
-import {StringConverter} from "../../converter/DBStringConverter";
+import {Converter} from "../../converter/Converter";
+import {StringConverter} from "../../converter/StringConverter";
 
 /** The type of id column. */
 export type IdType = "PK" | "SK";

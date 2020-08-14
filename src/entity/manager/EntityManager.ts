@@ -17,7 +17,7 @@
  */
 
 import {AttributeMapper} from "../../util/AttributeMapper";
-import {StringConverter} from "../../converter/DBStringConverter";
+import {StringConverter} from "../../converter/StringConverter";
 import {DynamoDB} from "aws-sdk";
 import {req} from "../../util/Req";
 import {ENTITY_DEF, ENTITY_REPO, EntityType} from "../annotation/Entity";
