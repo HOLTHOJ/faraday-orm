@@ -1,7 +1,7 @@
 {
   "name": "faraday-orm",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "ORM framework for the DynamoDB database.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -16,5 +16,12 @@
   "bugs": {
     "url": "https://github.com/HOLTHOJ/faraday-orm/issues"
   },
-  "homepage": "https://github.com/HOLTHOJ/faraday-orm#readme"
+  "homepage": "https://github.com/HOLTHOJ/faraday-orm#readme",
+  "dependencies": {
+    "path-to-regexp": "^6.1.0"
+  },
+  "devDependencies": {
+    "aws-sdk": "^2.732.0",
+    "@types/aws-lambda": "^8.10.48"
+  }
 }
