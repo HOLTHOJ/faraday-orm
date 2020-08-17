@@ -54,17 +54,18 @@ export const ENTITY_COLS = new Map<Function, ColumnDef[]>();
 
 /**
  * Defines a column in the DB row.
- * @param column
+ * @param columnName
+ * @param columnConverter
  * @param required
  * @param defaultValue
  */
-export function Column<T>(column: ColumnDescription<T>, required ?: boolean, defaultValue ?: () => T) {
+export function Column<T>(columnName: string, columnConverter: Converter<T>, required ?: boolean, defaultValue ?: () => T) {
     return (target: object, propertyKey: string, descriptor ?: TypedPropertyDescriptor<T>) => {
 
         const columnDef: ColumnDef<T> = {
             propName: propertyKey,
-            name: column.name,
-            converter: column.converter,
+            name: columnName,
+            converter: columnConverter,
             required: !!required,
             internal: false,
             defaultValue: defaultValue
