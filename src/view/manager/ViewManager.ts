@@ -19,7 +19,7 @@
 import {req, single} from "../../util/Req";
 import {DynamoDB} from "aws-sdk";
 import {ViewProxy} from "./ViewProxy";
-import {AttributeMapper} from "../../util/AttributeMapper";
+import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {createViewProxy} from "./ViewProxyImpl";
 import {VIEW_DEF, VIEW_SOURCE_ENTITIES, ViewType} from "../annotation/View";
 import {VIEW_QUERY_DEF} from "../annotation/ViewQuery";

@@ -19,11 +19,11 @@
 
 import {EntityManager, IdColumnDef} from "../../entity";
 import {EntityProxy} from "../../entity/manager/EntityProxy";
-import {AttributeMapper} from "../../util/AttributeMapper";
+import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {ViewManager} from "./ViewManager";
 import {ViewIdColumnDef} from "..";
 import {EntityManagerCallback, EntityManagerCallbackChain} from "../../entity/manager/EntityManagerCallback";
-import {ExpectedMapper} from "../../util/ExpectedMapper";
+import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
 
 export class ViewCallback implements EntityManagerCallback {
 

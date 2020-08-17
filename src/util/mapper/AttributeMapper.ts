@@ -17,15 +17,12 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {Converter} from "../converter/Converter";
+import {Converter} from "../../converter/Converter";
 
-export type ColumnDef<T> = {
-    readonly name: string;
-    readonly converter: Converter<T>;
-    // readonly defaultValue?: () => T;
-    // readonly required?: boolean;
-}
+/** */
+export type Column<T> = { readonly name: string; readonly converter: Converter<T>; }
 
+/** */
 export class AttributeMapper {
 
     private readonly _map: DynamoDB.Types.AttributeMap;
@@ -34,18 +31,18 @@ export class AttributeMapper {
         this._map = map || {};
     }
 
-    hasValue<T>(column: ColumnDef<T>): boolean {
+    hasValue<T>(column: Column<T>): boolean {
         return this._map[column.name] && Object.keys(this._map[column.name]).length > 0;
     }
 
-    setValue<T>(column: ColumnDef<T>, value: T | undefined) {
+    setValue<T>(column: Column<T>, value: T | undefined) {
         const attributeValue = column.converter.convertTo(value);
         this.setAttribute(column, attributeValue);
     }
 
-    setRequiredValue<T>(column: ColumnDef<T>, value: T): void;
-    setRequiredValue<T>(column: ColumnDef<T>, value: T | undefined, defaultValue: T): void;
-    setRequiredValue<T>(column: ColumnDef<T>, value: T | undefined, defaultValue ?: T) {
+    setRequiredValue<T>(column: Column<T>, value: T): void;
+    setRequiredValue<T>(column: Column<T>, value: T | undefined, defaultValue: T): void;
+    setRequiredValue<T>(column: Column<T>, value: T | undefined, defaultValue ?: T) {
         if (typeof value === "undefined" || value === null) {
             if (typeof defaultValue === "undefined" || defaultValue === null)
                 throw Error(`Missing required value for property ${column.name}.`);
@@ -56,12 +53,12 @@ export class AttributeMapper {
         this.setValue(column, value);
     }
 
-    getValue<T>(column: ColumnDef<T>): T | undefined {
+    getValue<T>(column: Column<T>): T | undefined {
         const value = this._map[column.name];
         return column.converter.convertFrom(value);
     }
 
-    getRequiredValue<T>(column: ColumnDef<T>, defaultValue ?: T): T {
+    getRequiredValue<T>(column: Column<T>, defaultValue ?: T): T {
         const value = this.getValue(column);
         if (typeof value !== "undefined" && value !== null) return value;
 
@@ -71,7 +68,7 @@ export class AttributeMapper {
         return defaultValue;
     }
 
-    setAttribute<T>(column: ColumnDef<T>, attr?: DynamoDB.Types.AttributeValue) {
+    setAttribute<T>(column: Column<T>, attr?: DynamoDB.Types.AttributeValue) {
         if (typeof attr !== "undefined") {
             this._map[column.name] = attr
         } else {
@@ -79,11 +76,11 @@ export class AttributeMapper {
         }
     }
 
-    deleteValue(column: ColumnDef<any>) {
+    deleteValue(column: Column<any>) {
         delete this._map[column.name];
     }
 
-    getAttributeValue<T>(column: ColumnDef<T>): DynamoDB.Types.AttributeValue | undefined {
+    getAttributeValue<T>(column: Column<T>): DynamoDB.Types.AttributeValue | undefined {
         return this._map[column.name];
     }
 

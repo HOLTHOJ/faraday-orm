@@ -18,10 +18,10 @@
 
 import {EntityManager} from "./EntityManager";
 import {EntityProxy} from "./EntityProxy";
-import {AttributeMapper} from "../../util/AttributeMapper";
+import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {DynamoDB} from "aws-sdk";
 import {req} from "../../util/Req";
-import {ExpectedMapper} from "../../util/ExpectedMapper";
+import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
 
 /**
  *

@@ -17,8 +17,12 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {ColumnDescription} from "../entity";
+import {Converter} from "../../converter/Converter";
 
+/** */
+export type Column<T = any> = { name: string, converter: Converter<T> }
+
+/** */
 export class ExpectedMapper {
 
     private readonly _map: DynamoDB.ExpectedAttributeMap;
@@ -27,7 +31,7 @@ export class ExpectedMapper {
         this._map = map || {};
     }
 
-    setExists<T>(column: ColumnDescription<T>, value: boolean) {
+    setExists<T>(column: Column<T>, value: boolean) {
         this._map[column.name] = {
             Exists: value
         };
@@ -39,7 +43,7 @@ export class ExpectedMapper {
         };
     }
 
-    setValue<T>(column: ColumnDescription<T>, operator: DynamoDB.ComparisonOperator, value?: T) {
+    setValue<T>(column: Column<T>, operator: DynamoDB.ComparisonOperator, value?: T) {
         const attributeValue = column.converter.convertTo(value);
         if (typeof attributeValue === "undefined") {
             this.setExists(column, false);
@@ -51,7 +55,7 @@ export class ExpectedMapper {
         }
     }
 
-    setValueList<T>(column: ColumnDescription<T>, operator: DynamoDB.ComparisonOperator, values?: T[]) {
+    setValueList<T>(column: Column<T>, operator: DynamoDB.ComparisonOperator, values?: T[]) {
         const attributeValue = values?.reduce((arr, value) => {
             const attributeValue = column.converter.convertTo(value);
             return (typeof attributeValue === "undefined") ? arr : arr.concat(attributeValue);
@@ -63,7 +67,7 @@ export class ExpectedMapper {
         };
     }
 
-    deleteValue(column: ColumnDescription<any>) {
+    deleteValue(column: Column<any>) {
         delete this._map[column.name];
     }
 

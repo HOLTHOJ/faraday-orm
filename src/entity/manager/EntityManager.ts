@@ -16,7 +16,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {AttributeMapper} from "../../util/AttributeMapper";
+import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {StringConverter} from "../../converter/StringConverter";
 import {DynamoDB} from "aws-sdk";
 import {def, req} from "../../util/Req";
@@ -25,7 +25,7 @@ import {EntityProxy} from "./EntityProxy";
 import {createEntityProxy} from "./EntityProxyImpl";
 import {ColumnDescription} from "..";
 import {Class} from "../../util/Class";
-import {ExpectedMapper} from "../../util/ExpectedMapper";
+import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
 import {PathToRegexpPathGenerator} from "../../util/PathToRegexpPathGenerator";
 import {PathGenerator} from "../../util/KeyPath";
 import {
