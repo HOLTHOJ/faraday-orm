@@ -40,15 +40,17 @@ This ensures that client applications have not modified this field between conse
 **Callbacks** are functions that are called during the process of retrieving or updating an item.
 They can modify internal and non-internal fields of the entity. Common use cases are;
 - Setting internal fields
-- Composing or destructing composite database fields (e.g. splitting a value on "/") 
+- Composing or destructing composite database fields (e.g. splitting a value on "/")
+- Validating fields 
 
 The **UNDEFINED** value is a constant that marks the fields as not initialised yet. 
 This is necessary to differentiate fields that are not set from fields that are deliberatily set to `undefined`.
 It also avoids having to add the `| undefined` union type each field. 
 
+The full version of this example can be found in the test cases: [DBFile.ts](test/filesystem/model/DBFile.ts).
 ```typescript
 @Entity("file")
-export class File {
+export class DBFile {
     
     public account: string = UNDEFINED
 
@@ -70,16 +72,16 @@ export class File {
     public createTime: Date = UNDEFINED;
 
     @Internal("ut", DateNumberConverter, true)
-    public lastUpdateTime: Date = UNDEFINED;
+    public updateTime: Date = UNDEFINED;
 
     @Callback()
     updateTimestamp(operation: CallbackOperation) {
+        const now = new Date();
         switch (operation) {
             case "INSERT":
-                this.createTime = new Date();
+                this.createTime = now;
             case "UPDATE":
-            case "DELETE":
-                this.lastUpdateTime = new Date();
+                this.updateTime = now;
         }
     }
 
@@ -103,7 +105,57 @@ export class File {
 
 Full documentation : [here](src/entity#entity-manager)
 
-::todo
+The entity manager provides the database operations to execute on our model entities.
+All operations only work on entity instance that are **loaded** by the EntityManager. 
+That is why it is important to always use EntityManager#load(EntityClass) first.
+
+The **GetItem** operation uses the Id values of the provided entity instance to lookup the entire entity from the database.
+Before the item is retrieved the PK and SK paths are compiled. 
+This makes it easier to lookup an entity, because the user does not need to be aware of how the Ids are composed.  
+
+The **CreateItem** operation creates the provided entity in the database. 
+This is an exclusive create operation, meaning the action will fail if the item already exists.
+
+The **UpdateItem** operation updates the provided entity in the database.
+An optional expected entity of the same type can also be provided.
+All properties from the expected entity are used as DynamoDB expected attribute values.
+This is helpful to enforce state transitions; 
+e.g. you can "close" an item only if the expected status is currently "open".
+
+The **DeleteItem** operation deletes the provided entity from the database.
+The optional entity can again be used to validate the current state in the database.
+
+```typescript
+const entityManager = EntityManager.get({tableName: "faraday-test"});
+
+const fileToCreate = EntityManager.load(DBFile);
+fileToCreate.account = "acme";
+fileToCreate.directory = "root";
+fileToCreate.fileName = "test-file";
+
+const createdFile = await entityManager.createItem(fileToCreate);
+console.log("Created file", JSON.stringify(createdFile));
+console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+
+const fileToGet = EntityManager.load(DBFile);
+fileToGet.account = "acme";
+fileToGet.directory = "root";
+fileToGet.fileName = "test-file";
+
+const foundFile = await entityManager.getItem(fileToGet);
+console.log("Found file", JSON.stringify(foundFile));
+console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+
+const fileToUpdate = EntityManager.load(DBFile);
+fileToUpdate.account = "acme";
+fileToUpdate.directory = "root";
+fileToUpdate.fileName = "test-file";
+fileToUpdate.mimeType = "application/pdf";
+
+const updatedFile = await entityManager.updateItem(fileToUpdate);
+console.log("Updated file", JSON.stringify(updatedFile));
+console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+```
 
 ## View datamodel
 **Views** are items that can be retrieved using queries. Views itself cannot be stored in the database.
@@ -125,15 +177,25 @@ They define the variable names to use for PK and SK values.
 The variable names are evaluates against an instance of this view.
 
 ```typescript
-@View("GSI", "explorer-index")
-@ViewQuery("list-all", ":dirId")
-@ViewQuery("filter-name", ":dirId", ":name", "BEGINS_WITH")
-export class DBFileExplorerView {
+@View("LSI", "pk-lsi1-index")
+@ViewQuery("list-all", ":account/:directory")
+@ViewQuery("folder-only", ":account/:directory", "0/", "BEGINS_WITH")
+@ViewQuery("file-only", ":account/:directory", "1/", "BEGINS_WITH")
+@ViewQuery("file-mimetype", ":account/:directory", "1/:mimeType/", "BEGINS_WITH")
+export class DBExplorerByTypeView {
 
-    @ViewId("PK", "dir")
-    public dirId: string = UNDEFINED;
+    public account: string = UNDEFINED
 
-    @ViewId("SK", "explorer")
+    public directory: string = UNDEFINED
+
+    public name: string = UNDEFINED;
+
+    public mimeType: string = UNDEFINED;
+
+    @ViewId("PK", "pk")
+    public parent: string = UNDEFINED;
+
+    @ViewId("SK", "lsi1")
     public explorer: string = UNDEFINED;
 
     @ViewColumn()
@@ -142,24 +204,20 @@ export class DBFileExplorerView {
     @ViewColumn()
     public folder: DBFolder = UNDEFINED;
 
-    public id: string = UNDEFINED;
-    
-    @ViewColumn() // This field is denormalized onto the view.
-    public name: string = UNDEFINED;
-
-    @ViewSource(DBFile, ":dirId", ":name/:id")
+    @ViewSource(DBFile, {pkPath: ":account/:directory", skPath: "1/:mimeType/:name"})
     public loadFile(value: DBFile) {
         this.file = value;
-        this.dirId = value.dirId;
-        this.id = value.fileId;
+        this.account = value.account;
+        this.directory = value.directory;
+        this.mimeType = value.mimeType;
         this.name = value.fileName;
     }
 
-    @ViewSource(DBFolder, ":dirId", ":name/:id")
+    @ViewSource(DBFolder, {pkPath: ":account/:directory", skPath: "0/:name"})
     public loadFolder(value: DBFolder) {
         this.folder = value;
-        this.dirId = value.dirId;
-        this.id = value.folderId;
+        this.account = value.account;
+        this.directory = value.directory;
         this.name = value.folderName;
     }
 
