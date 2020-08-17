@@ -76,7 +76,7 @@ export class EntityManager {
         this.transactionManager = new SessionManager();
     }
 
-    public static get(config?: EntityManagerConfig): EntityManager {
+    public static get(config?: Partial<EntityManagerConfig>): EntityManager {
         return new EntityManager(config);
     }
 

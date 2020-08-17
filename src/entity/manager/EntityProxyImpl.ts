@@ -16,11 +16,12 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {CallbackOperation, ColumnDef, EntityManager, EntityType, IdColumnDef} from "..";
+import {CallbackOperation, ColumnDef, EntityType, IdColumnDef} from "..";
 import {EntityExtMethods, EntityProxy} from "./EntityProxy";
 import {UNDEFINED} from "../../util/Undefined";
 import {req} from "../../util/Req";
 import {PathGenerator} from "../../util/KeyPath";
+import {EntityManagerConfig} from "./EntityManager";
 
 export function createEntityProxy(entityType: EntityType): { new(): EntityProxy } {
 
@@ -73,9 +74,9 @@ export function createEntityProxy(entityType: EntityType): { new(): EntityProxy 
             });
         }
 
-        public executeCallbacks<E>(operation: CallbackOperation) {
+        public executeCallbacks<E>(operation: CallbackOperation, config: EntityManagerConfig) {
             this.entityType.cback.forEach(cback => {
-                this.getValue(cback.propName).call(this, operation);
+                this.getValue(cback.propName).call(this, operation, config);
             });
         }
 

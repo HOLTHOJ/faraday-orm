@@ -23,13 +23,12 @@ describe("test/filesystem", () => {
 
     test("GET root/test-file", async () => {
         const rand = new Date().getTime().toString(36);
-        const entityManager = EntityManager.get({tableName: "faraday-test"});
+        const entityManager = EntityManager.get({tableName: "faraday-test", userName: "owner"});
 
         const fileToCreate = EntityManager.load(DBFile);
         fileToCreate.account = "acme";
         fileToCreate.directory = "root";
         fileToCreate.fileName = "test-file-" + rand;
-        fileToCreate.$sub = "owner";
 
         const createdFile = await entityManager.createItem(fileToCreate);
         console.log("Created file", JSON.stringify(createdFile));
@@ -46,7 +45,6 @@ describe("test/filesystem", () => {
 
         const fileToUpdate = foundFile;
         fileToUpdate.mimeType = "application/pdf";
-        fileToUpdate.$sub = "owner";
 
         const updatedFile = await entityManager.updateItem(fileToUpdate);
         console.log("Updated file", JSON.stringify(updatedFile));
