@@ -44,11 +44,24 @@ export class DBExplorerByNameView {
     public name: string = UNDEFINED;
 
     @ViewColumn()
-    @ViewSource(DBFile, {pkPath: ":account/:directory", skPath: ":fileName"})
     public file: DBFile = UNDEFINED;
 
     @ViewColumn()
-    @ViewSource(DBFolder, {pkPath: ":account/:directory", skPath: ":folderName"})
     public folder: DBFolder = UNDEFINED;
 
+    @ViewSource(DBFile, {pkPath: ":account/:directory", skPath: ":name"})
+    public loadFile(value: DBFile) {
+        this.file = value;
+        this.account = value.account;
+        this.directory = value.directory;
+        this.name = value.fileName;
+    }
+
+    @ViewSource(DBFolder, {pkPath: ":account/:directory", skPath: ":name"})
+    public loadFolder(value: DBFolder) {
+        this.folder = value;
+        this.account = value.account;
+        this.directory = value.directory;
+        this.name = value.folderName;
+    }
 }

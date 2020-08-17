@@ -25,8 +25,13 @@ import {DBExplorerByTypeView} from "./view/explorer/DBExplorerByTypeView";
 
 describe("test/filesystem", () => {
 
+    EntityManager.GLOBAL_CONFIG = {
+        userName: "owner",
+        tableName: "faraday-test",
+    }
+
     test("view/file", async () => {
-        const entityManager = EntityManager.get({tableName: "faraday-test"});
+        const entityManager = EntityManager.get();
         const viewManager = ViewManager.get(entityManager);
 
         const view = ViewManager.loadView(DBFileView);
@@ -39,7 +44,7 @@ describe("test/filesystem", () => {
     })
 
     test("view/folder", async () => {
-        const entityManager = EntityManager.get({tableName: "faraday-test"});
+        const entityManager = EntityManager.get();
         const viewManager = ViewManager.get(entityManager);
 
         const view = ViewManager.loadView(DBFolderView);
@@ -52,7 +57,7 @@ describe("test/filesystem", () => {
     })
 
     test("view/explorer/name/all", async () => {
-        const entityManager = EntityManager.get({tableName: "faraday-test"});
+        const entityManager = EntityManager.get();
         const viewManager = ViewManager.get(entityManager);
 
         const view = ViewManager.loadView(DBExplorerByNameView);
@@ -65,7 +70,7 @@ describe("test/filesystem", () => {
     })
 
     test("view/explorer/name?test-file", async () => {
-        const entityManager = EntityManager.get({tableName: "faraday-test"});
+        const entityManager = EntityManager.get();
         const viewManager = ViewManager.get(entityManager);
 
         const view = ViewManager.loadView(DBExplorerByNameView);
@@ -80,7 +85,7 @@ describe("test/filesystem", () => {
 
 
     test("view/explorer/type/all", async () => {
-        const entityManager = EntityManager.get({tableName: "faraday-test"});
+        const entityManager = EntityManager.get();
         const viewManager = ViewManager.get(entityManager);
 
         const view = ViewManager.loadView(DBExplorerByTypeView);
