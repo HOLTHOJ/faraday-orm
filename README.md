@@ -40,7 +40,6 @@ This ensures that client applications have not modified this field between conse
 **Callbacks** are functions that are called during the process of retrieving or updating an item.
 They can modify internal and non-internal fields of the entity. Common use cases are;
 - Setting internal fields
-- Composing or destructing composite database fields (e.g. splitting a value on "/")
 - Validating fields 
 
 The **UNDEFINED** value is a constant that marks the fields as not initialised yet. 
