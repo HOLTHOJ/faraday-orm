@@ -20,9 +20,9 @@ import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
 
 /**
- * The default DynamoDB converter for storing a string array values as SS attribute.
+ * A DynamoDB converter for storing an array of string values as SS attribute.
  *
- * The DynamoDB spec says that the SS attribute cannot be an empty string. This is, however,
+ * The DynamoDB spec says that the SS attribute cannot be an empty array. This is, however,
  * not validated by this converter and will instead be reported as an error by the DynamoDB layer itself.
  */
 export const StringSetConverter: Converter<string[]> = {

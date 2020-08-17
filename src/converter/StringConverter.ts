@@ -20,7 +20,7 @@ import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
 
 /**
- * The default DynamoDB converter for storing string values as S attributes.
+ * A DynamoDB converter for storing string values as S attributes.
  */
 export const StringConverter: Converter<string> = {
 

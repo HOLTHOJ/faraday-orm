@@ -24,13 +24,12 @@ import {Converter} from "./Converter";
  * The ISO string value of the date will be stored as a String attribute.
  *
  * @see Date#toISOString()
+ * @see DateConstructor
  */
 export const DateStringConverter: Converter<Date> = {
 
     convertFrom(value: DynamoDB.AttributeValue | undefined): Date | undefined {
         if (typeof value === "undefined") return undefined;
-
-        if (value.N) return new Date(Number(value.N));
         if (value.S) return new Date(value.S);
 
         return undefined;

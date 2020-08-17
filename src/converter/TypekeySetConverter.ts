@@ -20,14 +20,12 @@ import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
 
 /**
- * The default DynamoDB converter for storing typekey set values as SS attributes.
+ * A DynamoDB converter for storing an array of typekey values as SS attributes.
  *
  * Typekeys are TypeScript string union types; e.g.
- * <pre>
- * export type Status = "ON" | "OFF";
- * </pre>
+ *   export type Status = "ON" | "OFF";
  *
- * The DynamoDB spec says that the SS attribute cannot be an empty string. This is, however,
+ * The DynamoDB spec says that the SS attribute cannot be an empty array. This is, however,
  * not validated by this converter and will instead be reported as an error by the DynamoDB layer itself.
  */
 export const TypekeySetConverter = <T extends string>(types: T[]): Converter<T[]> => {

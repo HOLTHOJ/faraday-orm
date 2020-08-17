@@ -20,12 +20,10 @@ import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
 
 /**
- * The default DynamoDB converter for storing typekey values as S attributes.
+ * A DynamoDB converter for storing typekey values as S attributes.
  *
  * Typekeys are TypeScript string union types; e.g.
- * <pre>
- * export type Status = "ON" | "OFF";
- * </pre>
+ *   export type Status = "ON" | "OFF";
  */
 export const TypekeyConverter = <T extends string>(types: T[]): Converter<T> => {
 

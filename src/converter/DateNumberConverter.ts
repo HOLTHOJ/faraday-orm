@@ -20,18 +20,17 @@ import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
 
 /**
- * The default DynamoDB converter for storing Date values as N attributes.
+ * A DynamoDB converter for storing Date values as N attributes.
  * The Time value of the date will be stored as a Number attribute.
  *
  * @see Date#getTime()
+ * @see DateConstructor
  */
 export const DateNumberConverter: Converter<Date> = {
 
     convertFrom(value: DynamoDB.AttributeValue | undefined): Date | undefined {
         if (typeof value === "undefined") return undefined;
-
         if (value.N) return new Date(Number(value.N));
-        if (value.S) return new Date(value.S);
 
         return undefined;
     },

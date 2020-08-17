@@ -20,7 +20,11 @@ import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
 
 /**
- * The default DynamoDB converter for storing boolean values as B attributes.
+ * A DynamoDB converter for storing boolean values as B attributes.
+ *
+ * This is a strict boolean converter; it only accepts and writes to B attributes.
+ * Boolean values could also be stored as number values or string values,
+ * but you will have to write a custom converter for this.
  *
  * @see BooleanConstructor
  */
@@ -29,8 +33,6 @@ export const BooleanConverter: Converter<boolean> = {
     convertFrom(value?: DynamoDB.AttributeValue | undefined): boolean | undefined {
         if (typeof value === "undefined") return undefined;
         if (value.BOOL) return value.BOOL;
-        if (value.S) return Boolean(value.S);
-        if (value.N) return Boolean(value.N);
 
         return undefined;
     },

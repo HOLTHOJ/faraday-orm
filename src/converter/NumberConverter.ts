@@ -20,7 +20,10 @@ import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
 
 /**
- * The default DynamoDB converter for storing number values as N attributes.
+ * A DynamoDB converter for storing number values as N attributes.
+ *
+ * This is a strict number converter; it only accepts and writes to N attributes.
+ * Number values could also be stored as string values, but you will have to write a custom converter for this.
  *
  * @see NumberConstructor
  */

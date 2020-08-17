@@ -20,32 +20,25 @@ import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
 
 /**
- * A serializer to store and load a DynamoDB AttributeMap into a Javascript object.
+ * A DynamoDB converter for storing an array of numbers values as NS attribute.
+ *
+ * The DynamoDB spec says that the NS attribute cannot be an empty array. This is, however,
+ * not validated by this converter and will instead be reported as an error by the DynamoDB layer itself.
  */
-export type ObjectSerializer<T extends object> = {
-    load: (data: DynamoDB.Types.AttributeMap) => T
-    save: (data: T) => DynamoDB.Types.AttributeMap
-}
+export const NumberSetConverter: Converter<number[]> = {
 
-/**
- * A DynamoDB converter for storing objects as M attributes.
- */
-export const ObjectConverter = <T extends object>(type: ObjectSerializer<T>): Converter<T> => {
+    convertFrom(value: DynamoDB.AttributeValue | undefined): number[] | undefined {
+        if (typeof value === "undefined") return undefined;
+        if (value.NS) return value.NS.map(elt => Number(elt));
 
-    return {
-        convertFrom(value: DynamoDB.AttributeValue | undefined): T | undefined {
-            if (typeof value === "undefined") return undefined;
-            if (value.M) return type.load(value.M);
+        return undefined;
+    },
 
-            return undefined;
-        },
+    convertTo(value: number[] | undefined): DynamoDB.AttributeValue | undefined {
+        if (typeof value === "undefined") return undefined;
+        if (value === null) return undefined;
 
-        convertTo(value: T | undefined): DynamoDB.AttributeValue | undefined {
-            if (typeof value === "undefined") return undefined;
-            if (value === null) return undefined;
-
-            return {M: type.save(value)};
-        }
+        return {NS: value.map(elt => elt.toString())};
     }
 
 };
