@@ -16,22 +16,23 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {CallbackOperation, ColumnDef, EntityType, IdColumnDef} from "..";
-import {EntityProxy} from "./EntityProxy";
+import {CallbackOperation, ColumnDef, EntityManager, EntityType, IdColumnDef} from "..";
+import {EntityExtMethods, EntityProxy} from "./EntityProxy";
 import {UNDEFINED} from "../../util/Undefined";
+import {req} from "../../util/Req";
+import {PathGenerator} from "../../util/KeyPath";
 
-export function createEntityProxy(ctor: { new(...args: any[]): {} }, entityType: EntityType): { new(): EntityProxy } {
+export function createEntityProxy(entityType: EntityType): { new(): EntityProxy } {
 
-    const newCtor = class extends ctor implements EntityProxy {
-
-        static create(): any {
-            console.error("Creates new instance ?")
-            return undefined;
-        }
+    const newCtor = class extends entityType.def.ctor implements EntityExtMethods {
 
         public get entityType(): EntityType {
             return entityType;
         }
+
+        // public get entityManager(): EntityManager {
+        //     return entityManager;
+        // }
 
         public getValue(propName: PropertyKey): any {
             // @ts-ignore
@@ -78,12 +79,58 @@ export function createEntityProxy(ctor: { new(...args: any[]): {} }, entityType:
             });
         }
 
+        compileKeys(defaultPathGenerator: PathGenerator): void {
+            if (!this.entityType.keyPath) return;
+
+            const pkPath = this.entityType.keyPath.pkPath;
+            const skPath = this.entityType.keyPath.skPath;
+            const pathGenerator = this.entityType.keyPath.pathGenerator || defaultPathGenerator;
+
+            if (this.entityType.pk) {
+                const pkCol = this.entityType.pk;
+                const pkValue = pathGenerator.compile(this, req(pkPath));
+                this.setValue(pkCol.propName, pkValue);
+            }
+
+            if (this.entityType.sk) {
+                const skCol = this.entityType.sk;
+                const skValue = pathGenerator.compile(this, req(skPath));
+                this.setValue(skCol.propName, skValue);
+            }
+        }
+
+        parseKeys(defaultPathGenerator: PathGenerator): void {
+            if (!this.entityType.keyPath) return;
+
+            const pkPath = this.entityType.keyPath.pkPath;
+            const skPath = this.entityType.keyPath.skPath;
+            const pathGenerator = this.entityType.keyPath.pathGenerator || defaultPathGenerator;
+
+            if (this.entityType.pk) {
+                const pkCol = this.entityType.pk;
+                const pkValue = this.getValue(pkCol.propName);
+                const decompiledFields = pathGenerator.parse(pkValue, req(pkPath));
+                Object.entries(decompiledFields).forEach(([key, val]) => {
+                    this.setValue(key, val);
+                })
+            }
+
+            if (this.entityType.sk) {
+                const skCol = req(this.entityType.sk);
+                const skValue = this.getValue(skCol.propName);
+                const decompiledFields = pathGenerator.parse(skValue, req(skPath));
+                Object.entries(decompiledFields).forEach(([key, val]) => {
+                    this.setValue(key, val);
+                })
+            }
+        }
+
         public toJSON(key ?: string): object {
             if (this.entityType.toJSON) {
                 return this.entityType.toJSON.value.call(this, key);
             }
 
-            return {};
+            return this;
 
             // const exposed = ExposedUtil.getAllExposedProps(this.entityType.def.ctor);
             // return exposed?.reduce((obj, elt) => {
@@ -95,7 +142,7 @@ export function createEntityProxy(ctor: { new(...args: any[]): {} }, entityType:
         }
     }
 
-    Object.defineProperty(newCtor, "name", {value: ctor.name + "Proxy"});
+    Object.defineProperty(newCtor, "name", {value: entityType.def.ctor + "Proxy"});
 
     return newCtor;
 }

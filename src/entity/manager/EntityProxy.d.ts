@@ -16,33 +16,62 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {CallbackOperation, ColumnDef, EntityType, IdColumnDef} from "..";
+import {CallbackOperation, ColumnDef, EntityManager, EntityType, IdColumnDef} from "..";
+import {PathGenerator} from "../../util/KeyPath";
 
-export type EntityProxy<E extends object = any> = E & {
+/** */
+export type EntityProxy<E extends object = any> = E & EntityExtMethods<E>;
 
+/** */
+export type EntityExtMethods<E extends object = any> = {
+
+    /** The entity type configuration. */
     readonly entityType: EntityType<E>;
+
+    // /** The entity manager that loaded this entity. */
+    // readonly entityManager: EntityManager;
 
     getValue(propName: PropertyKey): any;
 
     setValue(propName: PropertyKey, value: any): void;
 
     /**
+     * Compiles the key paths using this Entity instance and populates their resp. properties.
+     */
+    compileKeys(defaultPathGenerator: PathGenerator): void
+
+    /**
      * Parses the key paths using this Entity instance and populates their resp. properties.
      */
-    parseKeys(): void;
+    parseKeys(defaultPathGenerator: PathGenerator): void;
 
+    /**
+     *
+     * @param block
+     * @param validateRequired
+     */
     forEachId(block: (id: IdColumnDef, value: any, valueIsSet: boolean) => void, validateRequired?: boolean): void;
 
     /**
      *
-     * ** Includes @Internal columns.
+     * -> Includes @Internal columns.
      *
      * @param block
      * @param validateRequired
      */
     forEachCol(block: (col: ColumnDef, value: any | undefined, valueIsSet: boolean) => void, validateRequired?: boolean): void;
 
+    /**
+     * Executes all the entity's callback functions in reverse order.
+     * This means that the callback function of the most parent class will be called first.
+     *
+     * @param operation
+     */
     executeCallbacks(operation: CallbackOperation): void;
 
+    /**
+     * Handles the stringify functionality for this entity.
+     * This will delegate to the toJSON method on the model class, if it exists.
+     */
     toJSON(): object;
 }

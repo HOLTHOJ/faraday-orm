@@ -21,36 +21,26 @@ import {DynamoDB} from "aws-sdk";
 import {ViewProxy} from "./ViewProxy";
 import {AttributeMapper} from "../../util/AttributeMapper";
 import {createViewProxy} from "./ViewProxyImpl";
-import {ViewIdColumnDef} from "..";
 import {VIEW_DEF, VIEW_SOURCE_ENTITIES, ViewType} from "../annotation/View";
 import {VIEW_QUERY_DEF} from "../annotation/ViewQuery";
-import {EntityProxy} from "../../entity/manager/EntityProxy";
 import {EntityManager} from "../../entity/manager/EntityManager";
-import {IdColumnDef} from "../../entity/annotation/Id";
 import {Class} from "../../util/Class";
-
-/** Adds a callback to the EntityManager to populate the View index fields before committing the entity. */
-EntityManager.CBACK_BEFORE_COMMIT.push((record: EntityProxy, item: AttributeMapper) => {
-    ViewManager.getViewsForSource(record, true).forEach(view => {
-        view.forEachId((id: ViewIdColumnDef, value: any, valueIsSet: boolean) => {
-            if (item.getValue(id) !== value) {
-                record.forEachId((recordId: IdColumnDef) => {
-                    if (id.name === recordId.name) {
-                        throw new Error(`View ${view.viewType.ctor.name} is not allowed to override the ID values of the Entity.`);
-                    }
-                }, false);
-
-                console.warn(`Column ${id.name} will be overridden by View ${view.viewType.ctor.name}.`);
-            }
-            item.setValue({name: id.name, converter: id.converter}, value);
-        }, true)
-    });
-});
+import {EntityType} from "../../entity";
 
 /**
  * View manager.
  */
 export class ViewManager {
+
+    private readonly _entityManager: EntityManager;
+
+    private constructor(entityManager: EntityManager) {
+        this._entityManager = entityManager;
+    }
+
+    static get(entityManager: EntityManager) {
+        return new ViewManager(entityManager);
+    }
 
     /**
      *
@@ -79,30 +69,32 @@ export class ViewManager {
      * @param view      The View instance that from which the values that are needed to generate the query will be read.
      * @param queryName The name of the query needed to lookup the correct @ViewQuery annotation.
      */
-    static async queryView<V extends object>(view: ViewProxy<V>, queryName: string): Promise<V[]> {
+    public async queryView<V extends object>(view: ViewProxy<V>, queryName: string): Promise<V[]> {
         const viewType = view.viewType;
         const viewQuery = single(VIEW_QUERY_DEF.get(viewType.ctor)!.filter(elt => elt.name === queryName),
             `Invalid query name ${queryName}. Not found on ${viewType.ctor}.`);
 
-        view.parseKeys(viewQuery.pk, viewQuery.sk);
+        view.parseKeys(this._entityManager.config.pathGenerator, viewQuery.pk, viewQuery.sk);
 
         const queryInput: DynamoDB.QueryInput = {
-            TableName: "mxp-db-expert-dev",
+            TableName: this._entityManager.config.tableName,
             IndexName: viewType.indexName,
             KeyConditions: {}
         }
 
         view.forEachId((id, value, valueIsSet) => {
-            queryInput.KeyConditions![id.name] = {
-                ComparisonOperator: (id.idType === "PK") ? "EQ" : viewQuery.operation,
-                AttributeValueList: [req(id.converter.convertTo(value))]
+            if (valueIsSet) {
+                queryInput.KeyConditions![id.name] = {
+                    ComparisonOperator: (id.idType === "PK") ? "EQ" : viewQuery.operation,
+                    AttributeValueList: [req(id.converter.convertTo(value))]
+                }
             }
-        });
+        }, false);
 
         const data = await new DynamoDB().query(queryInput).promise();
 
         // TODO : Implement optional aggregator.
-        return (data.Items || []).map(elt => ViewManager.loadFromDB(viewType, elt));
+        return (data.Items || []).map(elt => this.loadFromDB(viewType, elt));
     }
 
     /**
@@ -114,13 +106,22 @@ export class ViewManager {
      * @param loadSource If TRUE the given entity will immediately be loaded into the View. Default is TRUE.
      * @see ViewProxy#loadSource
      */
-    static getViewsForSource<E extends object>(entity: E, loadSource: boolean = true): ViewProxy<any>[] {
+    getViewsForSource<E extends object>(entity: E, loadSource: boolean = true): ViewProxy<any>[] {
         const entityType = EntityManager.internal(entity).entityType;
         const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType) || [];
         return entityViewTypes.map(elt => {
             const view = ViewManager.loadView(elt);
-            if (loadSource) view.loadSource(entity);
+            if (loadSource) {
+                view.loadSource(entity, false, true, this._entityManager.config.pathGenerator);
+            }
             return view;
+        });
+    }
+
+    getViewsForSourceType<E extends object>(entityType: EntityType<E>): ViewProxy<any>[] {
+        const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType) || [];
+        return entityViewTypes.map(elt => {
+            return ViewManager.loadView(elt);
         });
     }
 
@@ -130,7 +131,7 @@ export class ViewManager {
      * @param viewType
      * @param data
      */
-    static loadFromDB<V extends object>(viewType: ViewType<V>, data: DynamoDB.AttributeMap): V {
+    public loadFromDB<V extends object>(viewType: ViewType<V>, data: DynamoDB.AttributeMap): V {
         const view = ViewManager.loadView(viewType);
         const item = new AttributeMapper(data);
 
@@ -143,7 +144,7 @@ export class ViewManager {
         // In order to create the entity instance we require the $type column, which is only guaranteed
         // to be present for PROJECTED_ALL. Next we load the source into the view.
         if (view.viewType.indexProjections === "PROJECTED_ALL") {
-            const entity = EntityManager.loadFromDB2(data);
+            const entity = this._entityManager.loadFromDB2(data);
             if (!view.canLoadSource(entity)) {
                 throw new Error(`Unable to load entity ${entity.entityType.def.name} as a source on view ${viewType.ctor.name}.`);
             }

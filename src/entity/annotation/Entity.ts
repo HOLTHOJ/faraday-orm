@@ -21,6 +21,7 @@ import {ColumnDef, ENTITY_COLS} from "./Column";
 import {CallbackDef, ENTITY_CALLBACKS} from "./Callback";
 import {Class} from "../../util/Class";
 import {one, single} from "../../util/Req";
+import {KeyPath} from "../../util/KeyPath";
 
 /** The entity annotation definition. */
 export type EntityDef<E extends object = any> = { ctor: Class<E>, name: string, generateStats: boolean };
@@ -39,6 +40,13 @@ export type EntityType<E extends object = any> = {
 
     /** All the columns defined on this entity type. */
     readonly cols: ColumnDef[],
+
+    /**
+     * Contains a custom key path for this entity.
+     * By default the Id values will be read from their resp @Id columns,
+     * but if you want to use composite keys, you can specify the key paths here.
+     */
+    readonly keyPath?: KeyPath,
 
     /** The PK column defined on this entity. */
     readonly pk: IdColumnDef,
@@ -60,9 +68,10 @@ export type EntityType<E extends object = any> = {
  * Registers this class as a DynamoDB Entity. Entities can be saved and retrieved from the DB.
  *
  * @param type          The type name of this entity. This is needed to match the DB row with its correct entity.
+ * @param keyPath
  * @param generateStats If TRUE stats will be generated for this entity (if the trigger is enabled). Default is TRUE.
  */
-export function Entity(type: string, generateStats: boolean = true): (ctor: Class) => void {
+export function Entity(type: string, keyPath ?: KeyPath, generateStats: boolean = true): (ctor: Class) => void {
     return (ctor) => {
 
         if (ENTITY_REPO.has(type)) throw new Error(`Duplicate entity type ${type}.`);
@@ -93,10 +102,11 @@ export function Entity(type: string, generateStats: boolean = true): (ctor: Clas
         const entityType: EntityType = {
             def: entityDef,
             cols: c,
+            keyPath: keyPath,
             pk: single(i.filter(elt => elt.idType === "PK"), `Missing required PK Id Column.`),
             sk: one(i.filter(elt => elt.idType === "SK"), `Illegal SK Id Column configuration.`),
             // embedded: e,
-            cback: cb,
+            cback: cb.reverse(),
             toJSON: tj,
         };
 

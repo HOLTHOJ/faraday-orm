@@ -18,38 +18,27 @@
 
 import {UNDEFINED} from "../../../src/util/Undefined";
 import {StringConverter} from "../../../src/converter/StringConverter";
-import {DateNumberConverter} from "../../../src/converter/DateNumberConverter";
-import {Callback, CallbackOperation, Column, Entity, Id, Internal} from "../../../src/entity";
+import {Column, Entity, Id} from "../../../src/entity";
+import {Versionable} from "../../../src/entity/model/Versionable";
+import {NumberConverter} from "../../../src/converter/NumberConverter";
 
-@Entity("file")
-export class DBFile {
+@Entity("file", {pkPath: ":account/:directory", skPath: "file/:fileName"})
+export class DBFile extends Versionable {
 
-    @Id("PK", "dir")
-    public dirId: string = UNDEFINED
+    public account: string = UNDEFINED
 
-    @Id("SK", "id")
-    public fileId: string = UNDEFINED
+    public directory: string = UNDEFINED
 
-    @Column({name: "fileName", converter: StringConverter})
+    @Id("PK", "pk")
+    public parent: string = UNDEFINED
+
+    @Id("SK", "sk")
     public fileName: string = UNDEFINED
 
-    @Column({name: "mimeType", converter: StringConverter})
+    @Column("mimeType", StringConverter)
     public mimeType: string = UNDEFINED
 
-    @Internal({name: "ct", converter: DateNumberConverter}, true)
-    public createTime: Date = UNDEFINED;
+    @Column("size", NumberConverter)
+    public size: number = UNDEFINED
 
-    @Internal({name: "lut", converter: DateNumberConverter}, true)
-    public lastUpdateTime: Date = UNDEFINED;
-
-    @Callback()
-    updateTimestamp(operation: CallbackOperation) {
-        switch (operation) {
-            case "INSERT":
-                this.createTime = new Date();
-            case "UPDATE":
-            case "DELETE":
-                this.lastUpdateTime = new Date();
-        }
-    }
 }

@@ -16,9 +16,36 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {View} from "../../../src/view";
+import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../src/view";
+import {UNDEFINED} from "../../../src/util/Undefined";
+import {DBFolder} from "../model/DBFolder";
 
+/**
+ * The folder view lists all the Folder entities of a given directory,
+ * ordered by their internal ID (which is create-time based).
+ */
 @View("default")
+@ViewQuery("listAll", ":account/:directory", "folder/", "BEGINS_WITH")
 export class DBFolderView {
+
+    public account: string = UNDEFINED
+
+    public directory: string = UNDEFINED
+
+    @ViewId("PK", "pk")
+    public parentId: string = UNDEFINED
+
+    @ViewId("SK", "sk")
+    public folderId: string = UNDEFINED
+
+    @ViewColumn()
+    public folder: DBFolder = UNDEFINED;
+
+    @ViewSource(DBFolder, {pkPath: ":account/:directory", skPath: "folder/"})
+    public loadFolder(value: DBFolder) {
+        this.folder = value;
+        this.account = value.account;
+        this.directory = value.directory;
+    }
 
 }

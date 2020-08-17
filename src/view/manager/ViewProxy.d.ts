@@ -17,9 +17,13 @@
  */
 
 import {ViewColumnDef, ViewIdColumnDef, ViewType} from "..";
+import {PathGenerator} from "../../util/KeyPath";
 
 /** A view instance. */
-export type ViewProxy<V extends object = object> = V & {
+export type ViewProxy<V extends object = any> = V & ViewProxyMethods<V>;
+
+/** */
+export type ViewProxyMethods<V extends object = any> = {
 
     /** The view type used to create this instance. */
     readonly viewType: ViewType<V>;
@@ -48,14 +52,17 @@ export type ViewProxy<V extends object = object> = V & {
      * @param validateCondition If TRUE then an Error will be thrown if the entity cannot be applied to this view. Default is FALSE.
      * @param parseSk If TRUE the SK path will be generated. Can be turned of to avoid parsing errors. Default is TRUE.
      * @see canLoadSource
+     * @see parseKeys
      * @throws Error If no @ViewSource definition could be found for the given entity's type.
      */
-    loadSource<E extends object>(entity: E, validateCondition?: boolean, parseSk ?: boolean): void;
+    loadSource<E extends object>(entity: E, validateCondition?: boolean): void;
+    loadSource<E extends object>(entity: E, validateCondition: boolean, parseSk: false): void;
+    loadSource<E extends object>(entity: E, validateCondition: boolean, parseSk: true, defaultGenerator: PathGenerator): void;
 
     /**
      * Parses the given key paths using this View instance and populates their resp. properties.
      */
-    parseKeys(pkPath: string, skPath ?: string): void;
+    parseKeys(defaultGenerator: PathGenerator, pkPath: string, skPath ?: string): void;
 
     /**
      * Reads the Id properties and returns their column definition and value.

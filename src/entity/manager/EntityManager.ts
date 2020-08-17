@@ -19,27 +19,59 @@
 import {AttributeMapper} from "../../util/AttributeMapper";
 import {StringConverter} from "../../converter/StringConverter";
 import {DynamoDB} from "aws-sdk";
-import {req} from "../../util/Req";
+import {def, req} from "../../util/Req";
 import {ENTITY_DEF, ENTITY_REPO, EntityType} from "../annotation/Entity";
 import {EntityProxy} from "./EntityProxy";
 import {createEntityProxy} from "./EntityProxyImpl";
 import {ColumnDescription} from "..";
 import {Class} from "../../util/Class";
 import {ExpectedMapper} from "../../util/ExpectedMapper";
+import {PathToRegexpPathGenerator} from "../../util/PathToRegexpPathGenerator";
+import {PathGenerator} from "../../util/KeyPath";
+import {
+    DefaultEntityManagerCallback,
+    EntityManagerCallback,
+    EntityManagerCallbackChain,
+    EntityManagerCallbackNotifier
+} from "./EntityManagerCallback";
+import {SessionManager} from "./SessionManager";
+
+/**
+ * General config object to instantiate an EntityManager.
+ */
+export type Config = {
+    tableName: string,
+    pathGenerator?: PathGenerator,
+};
 
 /**
  *
  */
-export class EntityManager<E extends object> {
+export class EntityManager {
 
-    private readonly _tableName: string = "";
-    private readonly _transactionLog = new Proxy(new DynamoDB(), {}); // TODO : log all request/responses.
-
-    public static CBACK_BEFORE_COMMIT = new Array<(record: EntityProxy, item: AttributeMapper) => void>();
-    public static CBACK_AFTER_COMMIT = new Array<(record: EntityProxy, item: AttributeMapper) => void>();
-
+    public static GLOBAL_CONFIG ?: Partial<Config>;
     public static TYPE_COLUMN: ColumnDescription<string> = {name: "$type", converter: StringConverter};
 
+    private static CB: EntityManagerCallbackChain = new DefaultEntityManagerCallback();
+
+    public readonly config: Required<Config>;
+    public readonly transactionManager: SessionManager;
+
+    private constructor(config?: Config) {
+        this.config = {
+            tableName: req(config?.tableName || EntityManager.GLOBAL_CONFIG?.tableName, `Missing table name in config.`),
+            pathGenerator: def(config?.pathGenerator || EntityManager.GLOBAL_CONFIG?.pathGenerator, new PathToRegexpPathGenerator()),
+        }
+        this.transactionManager = new SessionManager();
+    }
+
+    public static get(config?: Config): EntityManager {
+        return new EntityManager(config);
+    }
+
+    public static registerCallback(handler: EntityManagerCallback) {
+        this.CB = new EntityManagerCallbackNotifier(handler, this.CB);
+    }
 
     /***************************************************************************************
      * CRUD OPERATIONS
@@ -48,29 +80,24 @@ export class EntityManager<E extends object> {
     /**
      *
      *
-     *
      * @param getInput
      */
-    public async getItem<E extends object>(getInput: E): Promise<E> {
+    public getItem<E extends object>(getInput: E): Promise<E> {
         const key = new AttributeMapper();
         const record = EntityManager.internal(getInput);
 
         // Call the GET callback to allow the entity to populate any composed index columns.
         record.executeCallbacks("GET");
 
+        // Compile the key paths into their id columns.
+        record.compileKeys(this.config.pathGenerator);
+
         // Map the ID columns onto the DynamoDB request.
         record.forEachId((id, value) => {
             key.setValue(id, value);
         }, true);
 
-        const input: DynamoDB.Types.GetItemInput = {
-            TableName: this._tableName,
-            Key: key.toMap(),
-            ReturnConsumedCapacity: "TOTAL",
-        };
-
-        const data = await this._transactionLog.getItem(input).promise();
-        return EntityManager.loadFromDB(record.entityType, req(data.Item, `Item not found.`));
+        return EntityManager.CB.getItem(this, record, key);
     }
 
     /**
@@ -79,7 +106,7 @@ export class EntityManager<E extends object> {
      *
      * @param createInput
      */
-    public async createItem<E extends object>(createInput: E): Promise<E> {
+    public createItem<E extends object>(createInput: E): Promise<E> {
         const item = new AttributeMapper();
         const expected = new ExpectedMapper();
         const record = EntityManager.internal(createInput);
@@ -101,6 +128,9 @@ export class EntityManager<E extends object> {
         // Call callbacks before extracting the columns.
         record.executeCallbacks("INSERT")
 
+        // Compile the key paths into their id columns.
+        record.compileKeys(this.config.pathGenerator);
+
         // Extract the ID columns into the DB request.
         record.forEachId((id, value) => {
             expected.setExists2(id.name, false);
@@ -113,20 +143,10 @@ export class EntityManager<E extends object> {
             if (valueIsSet) item.setValue(col, value);
         });
 
-        EntityManager.CBACK_BEFORE_COMMIT.forEach(cback => cback(record, item));
-
         // Set the $type column
         item.setValue(EntityManager.TYPE_COLUMN, record.entityType.def.name);
 
-        const input: DynamoDB.Types.PutItemInput = {
-            TableName: this._tableName,
-            Item: item.toMap(),
-            Expected: expected.toMap(),
-            ReturnConsumedCapacity: "TOTAL",
-        };
-
-        const data = await this._transactionLog.putItem(input).promise();
-        return EntityManager.loadFromDB(record.entityType, item.toMap());
+        return EntityManager.CB.putItem(this, record, item, expected);
     }
 
     /**
@@ -134,7 +154,7 @@ export class EntityManager<E extends object> {
      *
      *
      */
-    public async deleteItem<E extends object>(deleteInput: E): Promise<E> {
+    public deleteItem<E extends object>(deleteInput: E): Promise<E> {
         const key = new AttributeMapper();
         const expected = new ExpectedMapper();
         const record = EntityManager.internal(deleteInput);
@@ -147,21 +167,15 @@ export class EntityManager<E extends object> {
         // Run callbacks because they could generate ID columns.
         record.executeCallbacks("DELETE");
 
+        // Compile the key paths into their id columns.
+        record.compileKeys(this.config.pathGenerator);
+
         // Extract the ID columns into the DB request.
         record.forEachId((id, value) => {
             key.setValue(id, value);
         }, true);
 
-        const input: DynamoDB.Types.DeleteItemInput = {
-            TableName: this._tableName,
-            Key: key.toMap(),
-            Expected: expected.toMap(),
-            ReturnValues: "ALL_OLD",
-            ReturnConsumedCapacity: "TOTAL",
-        };
-
-        const data = await this._transactionLog.deleteItem(input).promise();
-        return EntityManager.loadFromDB(record.entityType, req(data.Attributes, `Item not found.`));
+        return EntityManager.CB.deleteItem(this, record, key, expected);
     }
 
     /**
@@ -179,12 +193,6 @@ export class EntityManager<E extends object> {
         const item = new AttributeMapper();
         const exp = new ExpectedMapper();
 
-        // Maps the entity IDs and verifies that an existing DB row exists.
-        record.forEachId((id, value) => {
-            item.setValue(id, value);
-            exp.setValue(id, "EQ", value);
-        }, true);
-
         // Non-modifiable fields should not be manually changed by the client, so we verify it at DB level.
         // - If the client sends it as-is then it will not fail as an expected value.
         // - If the client modifies this field, then the expected map will reject the update.
@@ -201,73 +209,39 @@ export class EntityManager<E extends object> {
         // Call callbacks before extracting the columns.
         record.executeCallbacks("UPDATE");
 
+        // Compile the key paths into their id columns.
+        record.compileKeys(this.config.pathGenerator);
+
+        // Maps the entity IDs and verifies that an existing DB row exists.
+        record.forEachId((id, value) => {
+            item.setValue(id, value);
+            exp.setValue(id, "EQ", value);
+        }, true);
+
         // Maps the column values to update the DB row.
         record.forEachCol((col, value, valueIsSet) => {
             if (valueIsSet) item.setValue(col, value);
         }, true);
 
-        EntityManager.CBACK_BEFORE_COMMIT.forEach(cback => cback(record, item));
-
         // Set the $type column
         item.setValue(EntityManager.TYPE_COLUMN, record.entityType.def.name);
 
-        const input: DynamoDB.Types.PutItemInput = {
-            TableName: this._tableName,
-            Item: item.toMap(),
-            Expected: exp.toMap(),
-            ReturnConsumedCapacity: "TOTAL",
-        };
-
-        const data = await this._transactionLog.putItem(input).promise();
-        return EntityManager.loadFromDB(record.entityType, item.toMap());
-    }
-
-    /***************************************************************************************
-     * STATIC UTIL FUNCTIONS
-     ***************************************************************************************/
-
-    /**
-     *
-     * @param item
-     */
-    public static getEntityType<E extends object>(item: AttributeMapper): EntityType<E> {
-        const entityTypeValue = item.getRequiredValue(EntityManager.TYPE_COLUMN);
-        return this.getEntityType2<E>(entityTypeValue);
-    }
-
-    public static load<X extends object>(entityType: string | Class<X> | EntityType<X>): EntityProxy<X> {
-        const type = (typeof entityType === "function" || typeof entityType === "string")
-            ? this.getEntityType2(entityType) : entityType;
-        return new (createEntityProxy(type.def.ctor, type))();
-    }
-
-    public static isManaged<E extends object>(entity: E): entity is EntityProxy<E> {
-        return (entity as EntityProxy<E>).entityType !== undefined;
-    }
-
-    public static internal<X extends object>(entity: X): EntityProxy<X> {
-        if (this.isManaged(entity)) return entity;
-        throw new Error(`Entity ${entity.constructor} is not a managed entity. Load it in the entity manager first.`);
-    }
-
-    public static loadFromDB2(data: DynamoDB.AttributeMap): EntityProxy<object> {
-        const item = new AttributeMapper(data);
-        const type = item.getRequiredValue(this.TYPE_COLUMN);
-        return this.loadFromDB(this.getEntityType2(type), data);
+        return EntityManager.CB.updateItem(this, record, item, exp);
     }
 
     /**
-     * Loads the given DynamoDB Attribute map into a managed entity of the given type.
+     * Loads the given DynamoDB Attribute map into a new managed entity of the given type.
      *
-     * NOTE : This is a low-level internal function. It is therefore advised to use getItem() instead.
+     * NOTE : This is a low-level internal function.
+     * If you need to load a new entity from the database, it is preferred to use getItem() instead.
      *
      * @param entityType
      * @param data
      * @throws Error if the DB Row type and Entity type don't match.
      */
-    public static loadFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): EntityProxy<E> {
+    public loadFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): EntityProxy<E> {
         const item = new AttributeMapper(data);
-        if (entityType.def.name !== item.getRequiredValue(this.TYPE_COLUMN)) {
+        if (entityType.def.name !== item.getRequiredValue(EntityManager.TYPE_COLUMN)) {
             throw new Error(`Unexpected record type ${entityType}.`);
         }
 
@@ -290,8 +264,50 @@ export class EntityManager<E extends object> {
             entity.setValue(col.propName, value);
         }, false);
 
+        // Parse the key paths into their id columns.
+        entity.parseKeys(this.config.pathGenerator);
+
         entity.executeCallbacks("LOAD");
+
         return entity;
+    }
+
+    /***************************************************************************************
+     * STATIC UTIL FUNCTIONS
+     ***************************************************************************************/
+
+    /**
+     *
+     * @param item
+     */
+    public static getEntityType<E extends object>(item: AttributeMapper): EntityType<E> {
+        const entityTypeValue = item.getRequiredValue(EntityManager.TYPE_COLUMN);
+        return this.getEntityType2<E>(entityTypeValue);
+    }
+
+    public static isManaged<E extends object>(entity: E): entity is EntityProxy<E> {
+        return (entity as EntityProxy<E>).entityType !== undefined;
+    }
+
+    public static internal<X extends object>(entity: X): EntityProxy<X> {
+        if (this.isManaged(entity)) return entity;
+        throw new Error(`Entity ${entity.constructor} is not a managed entity. Load it in the entity manager first.`);
+    }
+
+    public loadFromDB2(data: DynamoDB.AttributeMap): EntityProxy<object> {
+        const item = new AttributeMapper(data);
+        const type = item.getRequiredValue(EntityManager.TYPE_COLUMN);
+        return this.loadFromDB(EntityManager.getEntityType2(type), data);
+    }
+
+    /**
+     *
+     * @param entityType
+     */
+    public static load<X extends object>(entityType: string | Class<X> | EntityType<X>): EntityProxy<X> {
+        const type = (typeof entityType === "function" || typeof entityType === "string")
+            ? EntityManager.getEntityType2(entityType) : entityType;
+        return new (createEntityProxy(type))();
     }
 
     /**

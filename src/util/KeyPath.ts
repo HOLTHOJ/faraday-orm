@@ -16,10 +16,34 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-describe("", () => {
+/**
+ *
+ */
+export type KeyPath = {
 
-    test("", async() => {
-        console.log("WORKS");
-    })
+    /**
+     * The PK path. This will be fed to the PathGenerator
+     * and used as the PK Id column value.
+     */
+    pkPath: string,
 
-})
+    /**
+     * The SK path. This will be fed to the PathGenerator
+     * and used as the SK Id column value.
+     * This is optional if the entity does not define a SK Id column.
+     */
+    skPath?: string,
+
+    /**
+     * Defaults to a PathGenerator based on "path-to-regexp".
+     * @see PathToRegexpPathGenerator
+     */
+    pathGenerator?: PathGenerator
+};
+
+// TODO : return could be any "scalar" type.
+export interface PathGenerator {
+    compile(entity: object, key: string): string,
+
+    parse(path: string, key: string): object,
+}

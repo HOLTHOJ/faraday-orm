@@ -16,21 +16,19 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Entity, Id} from "../../../src/entity";
-import {UNDEFINED} from "../../../src/util/Undefined";
-import {Versionable} from "../../../src/entity/model/Versionable";
+import {compile, match} from "path-to-regexp";
+import {PathGenerator} from "./KeyPath";
 
-@Entity("folder", {pkPath: ":account/:directory", skPath: "folder/:folderName"})
-export class DBFolder extends Versionable {
+/**
+ *
+ */
+export class PathToRegexpPathGenerator implements PathGenerator {
+    compile(entity: object, key: string) {
+        return compile(key)(entity);
+    }
 
-    public account: string = UNDEFINED
-
-    public directory: string = UNDEFINED
-
-    @Id("PK", "pk")
-    public parent: string = UNDEFINED
-
-    @Id("SK", "sk")
-    public folderName: string = UNDEFINED
-
+    parse(path: string, key: string) {
+        const result = match(key)(path);
+        return (result) ? result.params : {};
+    }
 }

@@ -16,12 +16,13 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {ViewProxy} from "./ViewProxy";
+import {ViewProxy, ViewProxyMethods} from "./ViewProxy";
 import {ViewColumnDef, ViewIdColumnDef, ViewType} from "..";
 import {EntityManager} from "../../entity";
 import {one, req} from "../../util/Req";
 import {UNDEFINED} from "../../util/Undefined";
 import {compile} from "path-to-regexp";
+import {PathGenerator} from "../../util/KeyPath";
 
 /**
  * Creates a ViewProxy from a View class.
@@ -29,7 +30,7 @@ import {compile} from "path-to-regexp";
  */
 export function createViewProxy(viewType: ViewType): { new(): ViewProxy } {
 
-    const newCtor = class extends viewType.ctor implements ViewProxy {
+    const newCtor = class extends viewType.ctor implements ViewProxyMethods {
 
         public get viewType(): ViewType {
             return viewType;
@@ -81,7 +82,7 @@ export function createViewProxy(viewType: ViewType): { new(): ViewProxy } {
             return (sourceDefs.length === 1);
         }
 
-        loadSource(entity: object, validateCondition: boolean = false, parseSk: boolean = true): void {
+        loadSource(entity: object, validateCondition: boolean = false, parseSk: boolean = true, generator?: PathGenerator): void {
             const entityProxy = EntityManager.internal(entity);
             const entityType = entityProxy.entityType;
             const sourceDef = one(this.viewType.sources
@@ -101,11 +102,11 @@ export function createViewProxy(viewType: ViewType): { new(): ViewProxy } {
             sourceFunc.call(this, entity);
 
             if (parseSk) {
-                this.parseKeys(sourceDef.pkPath, sourceDef.skPath);
+                this.parseKeys(req(generator), sourceDef.keyPath.pkPath, sourceDef.keyPath.skPath);
             }
         }
 
-        parseKeys(pkPath: string, skPath ?: string): void {
+        parseKeys(generator: PathGenerator, pkPath: string, skPath ?: string): void {
             const pk = compile(pkPath)(this);
             const pkCol = this.viewType.pk;
             this.setValue(pkCol.propName, pk);

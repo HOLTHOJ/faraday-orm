@@ -36,7 +36,8 @@ export function req<T>(val: T | undefined | null, msg?: string): T {
  * @param val The value to test.
  * @param def The default value to use.
  */
-export function def<T>(val: T | undefined | null, def: T): T {
+export function def<T>(val: T | undefined | null | false, def: T): T {
+    if (typeof val === "boolean" && !val) return def;
     if (typeof val === "undefined") return def;
     if (val === null) return def;
     return val;
