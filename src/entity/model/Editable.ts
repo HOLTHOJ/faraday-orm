@@ -21,6 +21,7 @@ import {DateNumberConverter} from "../../converter/DateNumberConverter";
 import {StringConverter} from "../../converter/StringConverter";
 import {UNDEFINED} from "../../util/Undefined";
 import {Versionable} from "./Versionable";
+import {EntityManagerConfig} from "../manager/EntityManager";
 
 /**
  * An editable DB record.
@@ -46,23 +47,17 @@ export abstract class Editable extends Versionable {
     @Internal("$uu", StringConverter, true)
     public $updateUser: string = UNDEFINED;
 
-    /**
-     * The SUB (security subject) updating this record.
-     * FIXME: There must be a "threadlocal" way of accessing the current user.
-     */
-    public $sub: string = UNDEFINED;
-
     @Callback()
-    updateEditableInternalFields(operation: CallbackOperation): void {
+    updateEditableInternalFields(operation: CallbackOperation, config: EntityManagerConfig): void {
         const now = new Date();
         switch (operation) {
             case "INSERT":
                 this.$createTime = now;
-                this.$createUser = this.$sub;
+                this.$createUser = config.userName;
             case "UPDATE":
             case "DELETE":
                 this.$updateTime = now;
-                this.$updateUser = this.$sub;
+                this.$updateUser = config.userName;
         }
     }
 

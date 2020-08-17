@@ -16,8 +16,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {CallbackOperation, ColumnDef, EntityManager, EntityType, IdColumnDef} from "..";
+import {CallbackOperation, ColumnDef, EntityType, IdColumnDef} from "..";
 import {PathGenerator} from "../../util/KeyPath";
+import {EntityManagerConfig} from "./EntityManager";
 
 /** */
 export type EntityProxy<E extends object = any> = E & EntityExtMethods<E>;
@@ -66,8 +67,9 @@ export type EntityExtMethods<E extends object = any> = {
      * This means that the callback function of the most parent class will be called first.
      *
      * @param operation
+     * @param config
      */
-    executeCallbacks(operation: CallbackOperation): void;
+    executeCallbacks(operation: CallbackOperation, config: EntityManagerConfig): void;
 
     /**
      * Handles the stringify functionality for this entity.

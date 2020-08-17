@@ -17,7 +17,7 @@
  */
 
 /** */
-export type CallbackOperation = "LOAD" | "GET" | "INSERT" | "UPDATE" | "DELETE";
+export type CallbackOperation = "INSERT" | "UPDATE" | "DELETE";
 
 /** */
 export type CallbackDef = { propName: string, descriptor: PropertyDescriptor };

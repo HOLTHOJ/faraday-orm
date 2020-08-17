@@ -39,9 +39,19 @@ import {SessionManager} from "./SessionManager";
 /**
  * General config object to instantiate an EntityManager.
  */
-export type Config = {
+export type EntityManagerConfig = {
+
+    /** A user name to identify who is making the updates. */
+    userName: string,
+
+    /**
+     * The table name.
+     * An entity manager can only work with one table at a time.
+     */
     tableName: string,
-    pathGenerator?: PathGenerator,
+
+    /** A custom path generator for this entity manger only. */
+    pathGenerator: PathGenerator,
 };
 
 /**
@@ -49,23 +59,24 @@ export type Config = {
  */
 export class EntityManager {
 
-    public static GLOBAL_CONFIG ?: Partial<Config>;
+    public static GLOBAL_CONFIG ?: Partial<EntityManagerConfig>;
     public static TYPE_COLUMN: ColumnDescription<string> = {name: "$type", converter: StringConverter};
 
     private static CB: EntityManagerCallbackChain = new DefaultEntityManagerCallback();
 
-    public readonly config: Required<Config>;
+    public readonly config: EntityManagerConfig;
     public readonly transactionManager: SessionManager;
 
-    private constructor(config?: Config) {
+    private constructor(config?: Partial<EntityManagerConfig>) {
         this.config = {
+            userName: req(config?.userName || EntityManager.GLOBAL_CONFIG?.userName, `Missing user name in config.`),
             tableName: req(config?.tableName || EntityManager.GLOBAL_CONFIG?.tableName, `Missing table name in config.`),
             pathGenerator: def(config?.pathGenerator || EntityManager.GLOBAL_CONFIG?.pathGenerator, new PathToRegexpPathGenerator()),
         }
         this.transactionManager = new SessionManager();
     }
 
-    public static get(config?: Config): EntityManager {
+    public static get(config?: EntityManagerConfig): EntityManager {
         return new EntityManager(config);
     }
 
@@ -85,9 +96,6 @@ export class EntityManager {
     public getItem<E extends object>(getInput: E): Promise<E> {
         const key = new AttributeMapper();
         const record = EntityManager.internal(getInput);
-
-        // Call the GET callback to allow the entity to populate any composed index columns.
-        record.executeCallbacks("GET");
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -126,7 +134,7 @@ export class EntityManager {
         }, false);
 
         // Call callbacks before extracting the columns.
-        record.executeCallbacks("INSERT")
+        record.executeCallbacks("INSERT", this.config)
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -165,7 +173,7 @@ export class EntityManager {
         }, true);
 
         // Run callbacks because they could generate ID columns.
-        record.executeCallbacks("DELETE");
+        record.executeCallbacks("DELETE", this.config);
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -207,7 +215,7 @@ export class EntityManager {
         }, false)
 
         // Call callbacks before extracting the columns.
-        record.executeCallbacks("UPDATE");
+        record.executeCallbacks("UPDATE", this.config);
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -266,8 +274,6 @@ export class EntityManager {
 
         // Parse the key paths into their id columns.
         entity.parseKeys(this.config.pathGenerator);
-
-        entity.executeCallbacks("LOAD");
 
         return entity;
     }
