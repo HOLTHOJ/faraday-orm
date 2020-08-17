@@ -29,6 +29,7 @@ describe("test/filesystem", () => {
         fileToCreate.account = "acme";
         fileToCreate.directory = "root";
         fileToCreate.fileName = "test-file-" + rand;
+        fileToCreate.$sub = "owner";
 
         const createdFile = await entityManager.createItem(fileToCreate);
         console.log("Created file", JSON.stringify(createdFile));
@@ -43,11 +44,9 @@ describe("test/filesystem", () => {
         console.log("Found file", JSON.stringify(foundFile));
         console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
 
-        const fileToUpdate = EntityManager.load(DBFile);
-        fileToUpdate.account = "acme";
-        fileToUpdate.directory = "root";
-        fileToUpdate.fileName = "test-file-" + rand;
+        const fileToUpdate = foundFile;
         fileToUpdate.mimeType = "application/pdf";
+        fileToUpdate.$sub = "owner";
 
         const updatedFile = await entityManager.updateItem(fileToUpdate);
         console.log("Updated file", JSON.stringify(updatedFile));
