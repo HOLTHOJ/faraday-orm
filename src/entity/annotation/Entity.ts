@@ -26,10 +26,10 @@ import {KeyPath} from "../../util/KeyPath";
 /** The entity annotation definition. */
 export type EntityDef<E extends object = any> = { ctor: Class<E>, name: string, generateStats: boolean };
 
-/** */
+/** @internal Repository of all entities and the constructor function on which they are defined. */
 export const ENTITY_DEF = new Map<Function, EntityType>();
 
-/** The Entity repository where each entity is stored by its name. */
+/** @internal Repository of all entities and the name under which they are defined. */
 export const ENTITY_REPO = new Map<string, EntityType>();
 
 /** The full entity type details. */
@@ -57,8 +57,6 @@ export type EntityType<E extends object = any> = {
     /** The callbacks defined on this entity. */
     readonly cback: CallbackDef[],
 
-    // readonly embedded: EmbeddedDef[],
-
     /** The (optional) custom toJSON() function defined on this entity type. */
     readonly toJSON?: PropertyDescriptor,
 
@@ -67,17 +65,19 @@ export type EntityType<E extends object = any> = {
 /**
  * Registers this class as a DynamoDB Entity. Entities can be saved and retrieved from the DB.
  *
- * @param type          The type name of this entity. This is needed to match the DB row with its correct entity.
- * @param keyPath
+ * @param typeName      The type name of this entity. This is needed to match the DB row with its correct entity.
+ * @param keyPath       The key paths that will be compiled/parsed into/from their resp. Id columns.
  * @param generateStats If TRUE stats will be generated for this entity (if the trigger is enabled). Default is TRUE.
+ *
+ * @throws Error if the given type name is already registered.
  */
-export function Entity(type: string, keyPath ?: KeyPath, generateStats: boolean = true): (ctor: Class) => void {
+export function Entity(typeName: string, keyPath ?: KeyPath, generateStats: boolean = true): (ctor: Class) => void {
     return (ctor) => {
 
-        if (ENTITY_REPO.has(type)) throw new Error(`Duplicate entity type ${type}.`);
+        if (ENTITY_REPO.has(typeName)) throw new Error(`Duplicate entity type ${typeName}.`);
 
-        const c = ENTITY_COLS.get(ctor) || [];
-        const i = ENTITY_IDS.get(ctor) || [];
+        const cols = ENTITY_COLS.get(ctor) || [];
+        const ids = ENTITY_IDS.get(ctor) || [];
         // const e = EMBEDDED_COLS.get(ctor) || [];
         const cb = ENTITY_CALLBACKS.get(ctor) || [];
         let tj = Object.getOwnPropertyDescriptor(ctor.prototype, "toJSON");
@@ -90,27 +90,27 @@ export function Entity(type: string, keyPath ?: KeyPath, generateStats: boolean 
 
         let proto = Object.getPrototypeOf(ctor);
         while (proto) {
-            c.push(...(ENTITY_COLS.get(proto) || []));
-            i.push(...(ENTITY_IDS.get(proto) || []));
+            cols.push(...(ENTITY_COLS.get(proto) || []));
+            ids.push(...(ENTITY_IDS.get(proto) || []));
             // e.push(...(EMBEDDED_COLS.get(proto) || []));
             cb.push(...(ENTITY_CALLBACKS.get(proto) || []));
 
             proto = Object.getPrototypeOf(proto);
         }
 
-        const entityDef: EntityDef = {ctor: ctor, name: type, generateStats: generateStats};
+        const entityDef: EntityDef = {ctor: ctor, name: typeName, generateStats: generateStats};
         const entityType: EntityType = {
             def: entityDef,
-            cols: c,
+            cols: cols,
             keyPath: keyPath,
-            pk: single(i.filter(elt => elt.idType === "PK"), `Missing required PK Id Column.`),
-            sk: one(i.filter(elt => elt.idType === "SK"), `Illegal SK Id Column configuration.`),
+            pk: single(ids.filter(elt => elt.idType === "PK"), `Missing required PK Id Column.`),
+            sk: one(ids.filter(elt => elt.idType === "SK"), `Illegal SK Id Column configuration.`),
             // embedded: e,
             cback: cb.reverse(),
             toJSON: tj,
         };
 
         ENTITY_DEF.set(ctor, entityType);
-        ENTITY_REPO.set(type, entityType);
+        ENTITY_REPO.set(typeName, entityType);
     }
 }

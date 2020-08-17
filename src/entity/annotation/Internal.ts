@@ -29,14 +29,15 @@ import {Converter} from "../../converter/Converter";
  * The only way to update this column's value is through the use of @Callback functions, which are executed AFTER the
  * request from the client application is validated.
  *
- * An example of an internal field is the "LastUpdateTime" field. When a client application wants to update a resource,
- * it should not update the "LastUpdateTime" field itself, instead it should send back the old value, and the entity's
+ * An example of an internal field is the "UpdateTime" field. When a client application wants to update a resource,
+ * it should never update the "UpdateTime" field itself, instead it should send back the old value, and the entity's
  * internal callback will update the field as part of the commit process.
  *
- * @param columnName
- * @param columnConverter
- * @param required
- * @constructor
+ * @param columnName        The name of the column in the database.
+ * @param columnConverter   A converter to convert the value from/to their database attribute value.
+ * @param required          Will validate the value of this column before storing it in the database.
+ *
+ * @see Editable
  */
 export function Internal<T>(columnName: string, columnConverter: Converter<T>, required ?: boolean) {
     return (target: any, propertyKey: string) => {

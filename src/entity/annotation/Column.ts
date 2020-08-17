@@ -18,9 +18,6 @@
 
 import {Converter} from "../../converter/Converter";
 
-/** */
-export type ColumnDescription<T = any> = { name: string, converter: Converter<T> }
-
 /**
  * The definition of a database column defined on an Entity class.
  */
@@ -49,15 +46,16 @@ export type ColumnDef<T = any> = {
 
 };
 
-/** */
+/** @internal Repository of all columns and the constructor function on which they are defined. */
 export const ENTITY_COLS = new Map<Function, ColumnDef[]>();
 
 /**
  * Defines a column in the DB row.
- * @param columnName
- * @param columnConverter
- * @param required
- * @param defaultValue
+ *
+ * @param columnName        The name of the column in the database.
+ * @param columnConverter   A converter to convert the value from/to their database attribute value.
+ * @param required          Will validate the value of this column before storing it in the database.
+ * @param defaultValue      Generates a default value in case no value is provided.
  */
 export function Column<T>(columnName: string, columnConverter: Converter<T>, required ?: boolean, defaultValue ?: () => T) {
     return (target: object, propertyKey: string, descriptor ?: TypedPropertyDescriptor<T>) => {

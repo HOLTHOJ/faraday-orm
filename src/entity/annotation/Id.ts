@@ -20,27 +20,23 @@ import {ColumnDef} from "./Column";
 import {Converter} from "../../converter/Converter";
 import {StringConverter} from "../../converter/StringConverter";
 
-/** The type of id column. */
+/** The type of id column. PK = Partition Key, SK = Sort Key. */
 export type IdType = "PK" | "SK";
 
-/** */
-export type IdGenerator<T = any> = (type: IdType, value: T) => string;
-
 /** The column definition for this Id column. */
-export type IdColumnDef = ColumnDef<string> & { idType: IdType, generator?: IdGenerator<any> };
+export type IdColumnDef = ColumnDef<string> & { idType: IdType };
 
-/** */
+/** @internal Repository of all ids and the constructor function on which they are defined. */
 export const ENTITY_IDS = new Map<Function, IdColumnDef[]>();
 
 /**
  * Defines an ID column in the DB row.
  *
- * @param idType
- * @param columnName
- * @param columnConverter
- * @param generator
+ * @param idType            The type if Id column. DynamoDB tables can have a Partition Key (pk) and Sort Key (sk).
+ * @param columnName        The name of the column in the database.
+ * @param columnConverter   A converter to convert the value from/to their database attribute value.
  */
-export function Id(idType: IdType, columnName: string, columnConverter: Converter<string> = StringConverter, generator ?: IdGenerator) {
+export function Id(idType: IdType, columnName: string, columnConverter: Converter<string> = StringConverter) {
     return (target: any, propertyKey: string) => {
 
         const columnDef: IdColumnDef = {
@@ -50,7 +46,6 @@ export function Id(idType: IdType, columnName: string, columnConverter: Converte
             required: true,
             internal: false,
             idType: idType,
-            generator: generator,
         };
 
         if (ENTITY_IDS.has(target.constructor)) {
