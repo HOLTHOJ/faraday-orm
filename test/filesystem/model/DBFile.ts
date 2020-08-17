@@ -19,11 +19,11 @@
 import {UNDEFINED} from "../../../src/util/Undefined";
 import {StringConverter} from "../../../src/converter/StringConverter";
 import {Column, Entity, Id} from "../../../src/entity";
-import {Versionable} from "../../../src/entity/model/Versionable";
 import {NumberConverter} from "../../../src/converter/NumberConverter";
+import {Editable} from "../../../src/entity/model/Editable";
 
 @Entity("file", {pkPath: ":account/:directory", skPath: ":fileName"})
-export class DBFile extends Versionable {
+export class DBFile extends Editable {
 
     public account: string = UNDEFINED
 
