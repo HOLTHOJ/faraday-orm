@@ -115,9 +115,9 @@ The optional entity can again be used to validate the current state in the datab
 const entityManager = EntityManager.get({tableName: "faraday-test"});
 
 const fileToCreate = EntityManager.load(DBFile);
-fileToCreate.account = "acme";
-fileToCreate.directory = "root";
-fileToCreate.fileName = "test-file";
+fileToCreate.account = "acme";          // Partial PK
+fileToCreate.directory = "root";        // Partial PK
+fileToCreate.fileName = "test-file";    // SK
 
 const createdFile = await entityManager.createItem(fileToCreate);
 console.log("Created file", JSON.stringify(createdFile));
@@ -132,11 +132,8 @@ const foundFile = await entityManager.getItem(fileToGet);
 console.log("Found file", JSON.stringify(foundFile));
 console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
 
-const fileToUpdate = EntityManager.load(DBFile);
-fileToUpdate.account = "acme";
-fileToUpdate.directory = "root";
-fileToUpdate.fileName = "test-file";
-fileToUpdate.mimeType = "application/pdf";
+const fileToUpdate = fileToGet;             // You can also reuse already managed instances.
+fileToUpdate.mimeType = "application/pdf";  // Now we only need to set what we want to change.
 
 const updatedFile = await entityManager.updateItem(fileToUpdate);
 console.log("Updated file", JSON.stringify(updatedFile));
