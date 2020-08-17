@@ -22,7 +22,7 @@ import {Column, Entity, Id} from "../../../src/entity";
 import {Versionable} from "../../../src/entity/model/Versionable";
 import {NumberConverter} from "../../../src/converter/NumberConverter";
 
-@Entity("file", {pkPath: ":account/:directory", skPath: "file/:fileName"})
+@Entity("file", {pkPath: ":account/:directory", skPath: ":fileName"})
 export class DBFile extends Versionable {
 
     public account: string = UNDEFINED

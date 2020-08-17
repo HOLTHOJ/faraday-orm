@@ -49,7 +49,7 @@ It also avoids having to add the `| undefined` union type each field.
 The full version of this example can be found in the test cases: [DBFile.ts](test/filesystem/model/DBFile.ts).
 ```typescript
 
-@Entity("file", {pkPath: ":account/:directory", skPath: "file/:fileName"})
+@Entity("file", {pkPath: ":account/:directory", skPath: ":fileName"})
 export class DBFile extends Versionable {
 
     public account: string = UNDEFINED
