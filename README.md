@@ -48,24 +48,25 @@ It also avoids having to add the `| undefined` union type each field.
 
 The full version of this example can be found in the test cases: [DBFile.ts](test/filesystem/model/DBFile.ts).
 ```typescript
-@Entity("file")
-export class DBFile {
-    
+
+@Entity("file", {pkPath: ":account/:directory", skPath: "file/:fileName"})
+export class DBFile extends Versionable {
+
     public account: string = UNDEFINED
 
     public directory: string = UNDEFINED
 
     @Id("PK", "pk")
-    public parentId: string = UNDEFINED
+    public parent: string = UNDEFINED
 
     @Id("SK", "sk")
-    public fileId: string = UNDEFINED
-
-    @Column("fileName", StringConverter, true)
     public fileName: string = UNDEFINED
 
     @Column("mimeType", StringConverter)
     public mimeType: string = UNDEFINED
+
+    @Column("size", NumberConverter)
+    public size: number = UNDEFINED
 
     @Internal("ct", DateNumberConverter, true)
     public createTime: Date = UNDEFINED;
@@ -81,20 +82,6 @@ export class DBFile {
                 this.createTime = now;
             case "UPDATE":
                 this.updateTime = now;
-        }
-    }
-
-    @Callback()
-    compositeIds(operation: CallbackOperation) {
-        switch (operation) {
-            case "LOAD":
-                const [account, directory] = this.parentId.split("/")
-                this.account = account;
-                this.directory = directory;
-                break;
-            default:
-                this.parentId = [this.account, this.directory].join("/");
-                break;
         }
     }
 }
