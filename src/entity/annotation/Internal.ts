@@ -16,7 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {ColumnDef, ColumnDescription, ENTITY_COLS} from "./Column";
+import {ColumnDef, ENTITY_COLS} from "./Column";
+import {Converter} from "../../converter/Converter";
 
 /**
  * Configures a column to be an internal column. Internal columns cannot be modified directly from client applications.
@@ -32,17 +33,18 @@ import {ColumnDef, ColumnDescription, ENTITY_COLS} from "./Column";
  * it should not update the "LastUpdateTime" field itself, instead it should send back the old value, and the entity's
  * internal callback will update the field as part of the commit process.
  *
- * @param column
+ * @param columnName
+ * @param columnConverter
  * @param required
  * @constructor
  */
-export function Internal(column: ColumnDescription, required ?: boolean) {
+export function Internal<T>(columnName: string, columnConverter: Converter<T>, required ?: boolean) {
     return (target: any, propertyKey: string) => {
 
         const columnDef: ColumnDef = {
             propName: propertyKey,
-            name: column.name,
-            converter: column.converter,
+            name: columnName,
+            converter: columnConverter,
             required: !!required,
             internal: true
         };
