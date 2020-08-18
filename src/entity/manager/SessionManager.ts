@@ -20,52 +20,31 @@ import {AWSError, DynamoDB} from "aws-sdk";
 import {Request} from "aws-sdk/lib/request";
 
 /**
- * Not you conventional DB session manager: this will not allow you to commit/rollback all operations in this "session" atomically.
- * The term "session" here is (currently) only used to log all requests that are executed in one "session".
+ * The default session manager that flushes each operation immediately to the DB.
+ *
+ * @todo Make an implementation that makes use of the DynamoDB Transact API.
  */
-export class SessionManager implements Partial<DynamoDB> {
+export class SessionManager {
 
     private readonly db: DynamoDB;
-    public readonly log = new Array<{ timestamp: Date, input: string, capacity: DynamoDB.ConsumedCapacity }>();
+    public readonly log = new Array<{ timestamp: Date, input: string, capacity?: DynamoDB.ConsumedCapacity }>();
 
     constructor(options?: DynamoDB.Types.ClientConfiguration) {
-        this.db = new DynamoDB({
-            ...options,
-            logger: {
-                // write?: (chunk: any, encoding?: string, callback?: () => void) => void
-                log: (...messages: any[]) => {
-                    console.log("DYNAMODB", messages);
-                }
-            }
-        });
+        this.db = new DynamoDB(options);
     }
 
-    get lastLog(): { timestamp: Date, input: string, capacity: DynamoDB.ConsumedCapacity } | undefined {
+    get lastLog(): { timestamp: Date, input: string, capacity?: DynamoDB.ConsumedCapacity } | undefined {
         return (this.log.length > 0) ? this.log[this.log.length - 1] : undefined;
     }
 
-    getItem(callback?: (err: AWSError, data: DynamoDB.Types.GetItemOutput) => void): Request<DynamoDB.Types.GetItemOutput, AWSError>;
-    getItem(params: DynamoDB.Types.GetItemInput, callback?: (err: AWSError, data: DynamoDB.Types.GetItemOutput) => void): Request<DynamoDB.Types.GetItemOutput, AWSError>;
-    getItem(params?: DynamoDB.Types.GetItemInput | ((err: AWSError, data: DynamoDB.GetItemOutput) => void)): Request<DynamoDB.GetItemOutput, AWSError> {
-        if (typeof params !== "object") throw new Error(`Unknown operation.`);
-
+    getItem(params: DynamoDB.Types.GetItemInput): Request<DynamoDB.Types.GetItemOutput, AWSError> {
         const item = this.db.getItem(params);
         item.on("success", response => {
-            const capacity = (response.data as DynamoDB.GetItemOutput).ConsumedCapacity!;
+            const capacity = (typeof response.data == "object") ? response.data?.ConsumedCapacity : undefined;
             this.log.push({timestamp: new Date(), input: JSON.stringify(params), capacity: capacity});
         });
 
-        // item.promise = () => item.promise().then(data => {
-        //     this.log.push({
-        //         timestamp: new Date(),
-        //         input: JSON.stringify(params),
-        //         capacity: data.ConsumedCapacity!
-        //     });
-        //     return data;
-        // })
-
         return item;
-
     }
 
     putItem(params: DynamoDB.Types.PutItemInput, callback?: (err: AWSError, data: DynamoDB.Types.PutItemOutput) => void): Request<DynamoDB.Types.PutItemOutput, AWSError>;
@@ -75,7 +54,7 @@ export class SessionManager implements Partial<DynamoDB> {
 
         const item = this.db.putItem(params);
         item.on("success", response => {
-            const capacity = (response.data as DynamoDB.PutItemOutput).ConsumedCapacity!;
+            const capacity = (typeof response.data == "object") ? response.data?.ConsumedCapacity : undefined;
             this.log.push({timestamp: new Date(), input: JSON.stringify(params), capacity: capacity});
         });
 
@@ -89,7 +68,7 @@ export class SessionManager implements Partial<DynamoDB> {
 
         const item = this.db.deleteItem(params);
         item.on("success", response => {
-            const capacity = (response.data as DynamoDB.PutItemOutput).ConsumedCapacity!;
+            const capacity = (typeof response.data == "object") ? response.data?.ConsumedCapacity : undefined;
             this.log.push({timestamp: new Date(), input: JSON.stringify(params), capacity: capacity});
         });
 

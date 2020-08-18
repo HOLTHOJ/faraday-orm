@@ -27,13 +27,8 @@ import {Class} from "../../util/Class";
 import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
 import {PathToRegexpPathGenerator} from "../../util/PathToRegexpPathGenerator";
 import {PathGenerator} from "../../util/KeyPath";
-import {
-    DefaultEntityManagerCallback,
-    EntityManagerCallback,
-    EntityManagerCallbackChain,
-    EntityManagerCallbackNotifier
-} from "./EntityManagerCallback";
 import {SessionManager} from "./SessionManager";
+import {TransactionManager} from "./TransactionManager";
 
 /**
  * General config object for the EntityManager.
@@ -61,8 +56,6 @@ export class EntityManager {
     /** The technical column that is used to match the db item with the model  */
     public static TYPE_COLUMN = {name: "$type", converter: StringConverter};
 
-    private static CB: EntityManagerCallbackChain = new DefaultEntityManagerCallback();
-
     /**
      * The config of this entity manager.
      * This is the actual configuration that is used (it only contains default from GLOBAL_CONFIG).
@@ -83,14 +76,6 @@ export class EntityManager {
 
     public static get(config?: Partial<EntityManagerConfig>): EntityManager {
         return new EntityManager(config);
-    }
-
-    /**
-     * Registers a callback in the callback chain.
-     * This is designed to be used by other frameworks to extend the entity manager.
-     */
-    public static registerCallback(handler: EntityManagerCallback) {
-        this.CB = new EntityManagerCallbackNotifier(handler, this.CB);
     }
 
     /***************************************************************************************
@@ -121,7 +106,7 @@ export class EntityManager {
             key.setValue(id, value);
         }, true);
 
-        return EntityManager.CB.getItem(this, record, key);
+        return TransactionManager.getItem(this, record, key);
     }
 
     /**
@@ -178,7 +163,7 @@ export class EntityManager {
         // Set the $type column
         item.setValue(EntityManager.TYPE_COLUMN, record.entityType.def.name);
 
-        return EntityManager.CB.putItem(this, record, item, expected);
+        return TransactionManager.putItem(this, record, item, expected);
     }
 
     /**
@@ -216,7 +201,7 @@ export class EntityManager {
             key.setValue(id, value);
         }, true);
 
-        return EntityManager.CB.deleteItem(this, record, key, expected);
+        return TransactionManager.deleteItem(this, record, key, expected);
     }
 
     /**
@@ -280,7 +265,7 @@ export class EntityManager {
         // Set the $type column
         item.setValue(EntityManager.TYPE_COLUMN, record.entityType.def.name);
 
-        return EntityManager.CB.updateItem(this, record, item, exp);
+        return TransactionManager.updateItem(this, record, item, exp);
     }
 
     /**

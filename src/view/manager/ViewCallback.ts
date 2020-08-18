@@ -22,20 +22,23 @@ import {EntityProxy} from "../../entity/manager/EntityProxy";
 import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {ViewManager} from "./ViewManager";
 import {ViewIdColumnDef} from "..";
-import {EntityManagerCallback, EntityManagerCallbackChain} from "../../entity/manager/EntityManagerCallback";
 import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
+import {
+    TransactionManagerCallback,
+    TransactionManagerCallbackChain
+} from "../../entity/manager/TransactionManagerCallback";
 
-export class ViewCallback implements EntityManagerCallback {
+export class ViewCallback implements TransactionManagerCallback {
 
-    getItem<E extends object>(chain: EntityManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper): Promise<E> {
+    getItem<E extends object>(chain: TransactionManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper): Promise<E> {
         return chain.getItem(manager, record, item);
     }
 
-    deleteItem<E extends object>(chain: EntityManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<E> {
+    deleteItem<E extends object>(chain: TransactionManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<E> {
         return chain.deleteItem(manager, record, item, expected);
     }
 
-    putItem<E extends object>(chain: EntityManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<E> {
+    putItem<E extends object>(chain: TransactionManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<E> {
         ViewManager.get(manager).getViewsForSource(record, true).forEach(view => {
             view.forEachId((id: ViewIdColumnDef, value: any, valueIsSet: boolean) => {
                 if (item.getValue(id) !== value) {
@@ -54,7 +57,7 @@ export class ViewCallback implements EntityManagerCallback {
         return chain.putItem(manager, record, item, expected);
     }
 
-    updateItem<E extends object>(chain: EntityManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<E> {
+    updateItem<E extends object>(chain: TransactionManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<E> {
         return chain.updateItem(manager, record, item, expected);
     }
 

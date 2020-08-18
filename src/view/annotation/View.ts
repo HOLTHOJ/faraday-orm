@@ -20,9 +20,10 @@ import {VIEW_IDS, ViewIdColumnDef} from "./ViewId";
 import {VIEW_SOURCE_DEF, ViewSourceDef} from "./ViewSource";
 import {VIEW_COLUMN_DEFS, ViewColumnDef} from "./ViewColumn";
 import {one, single} from "../../util/Req";
-import {EntityManager, EntityType} from "../../entity";
+import {EntityType} from "../../entity";
 import {Class} from "../../util/Class";
 import {ViewCallback} from "../manager/ViewCallback";
+import {TransactionManager} from "../../entity/manager/TransactionManager";
 
 /**
  * The index type as defined on the DynamoDB table index.
@@ -143,7 +144,7 @@ export function View(indexType: ViewIndexType, indexName?: string, projected: Vi
 }
 
 /**
- * Adds a callback to the EntityManager to populate the View index fields before committing the entity.
+ * Adds a callback to the TransactionManager to populate the View index fields before committing the entity.
  * This needs to be executed once the View file is loaded (e.g. if a View class with annotation is used in the model).
  */
-EntityManager.registerCallback(new ViewCallback());
+TransactionManager.registerCallback(new ViewCallback());
