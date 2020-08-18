@@ -24,7 +24,7 @@ import {Keyable} from "./Keyable";
 /**
  * An versionable DB record.
  *
- * Versionable records always have a version field the ensure optimistic locking at DB level.
+ * Versionable records always have a version field the enable optimistic locking at DB level.
  */
 export abstract class Versionable extends Keyable {
 
@@ -46,7 +46,8 @@ export abstract class Versionable extends Keyable {
 
     @Callback()
     validateVersion(action: CallbackOperation) {
-        if (action === "DELETE" && this.$version < 1)
-            throw new Error(`Require a valid version.`);
+        if (action === "DELETE" && this.$version < 1) {
+            throw new Error(`Require a version.`);
+        }
     }
 }
