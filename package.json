@@ -35,7 +35,7 @@
     "test-integration": "jest --clearCache && jest",
     "test-clean": "jest --clearCache",
     "build": "tsc -p ./tsconfig.json",
-    "pack": "tsc && mxp-bundle-npm"
+    "pack": "echo \"Packing\" && tsc && mxp-bundle-npm"
   },
   "files": [
     "lib/**/*"
