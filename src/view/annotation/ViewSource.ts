@@ -46,7 +46,7 @@ export function ViewSource<S extends object>(entityCtor: Class<S>, keyPath: KeyP
     return (target: any, propertyKey: string) => {
 
         // Lookup entityType; type needs to be loaded first.
-        const entityType = EntityManager.getEntityType2(entityCtor);
+        const entityType = EntityManager.getEntityType(entityCtor);
 
         const viewEntityDef: ViewSourceDef<S> = {
             propName: propertyKey,

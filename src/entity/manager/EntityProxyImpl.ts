@@ -81,7 +81,7 @@ export function createEntityProxy(entityType: EntityType): { new(): EntityProxy 
         }
 
         compileKeys(defaultPathGenerator: PathGenerator): void {
-            if (!this.entityType.keyPath) return;
+            if (typeof this.entityType.keyPath === "undefined") return;
 
             const pkPath = this.entityType.keyPath.pkPath;
             const skPath = this.entityType.keyPath.skPath;

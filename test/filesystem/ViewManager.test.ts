@@ -40,7 +40,7 @@ describe("test/filesystem", () => {
 
         const views = await viewManager.queryView(view, "listAll");
         console.log("Views", views.length, JSON.stringify(views));
-        console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+        console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
     })
 
     test("view/folder", async () => {
@@ -53,7 +53,7 @@ describe("test/filesystem", () => {
 
         const views = await viewManager.queryView(view, "listAll");
         console.log("Views", views.length, JSON.stringify(views));
-        console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+        console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
     })
 
     test("view/explorer/name/all", async () => {
@@ -66,7 +66,7 @@ describe("test/filesystem", () => {
 
         const views = await viewManager.queryView(view, "list-all");
         console.log("Views", views.length, JSON.stringify(views));
-        console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+        console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
     })
 
     test("view/explorer/name?test-file", async () => {
@@ -80,7 +80,7 @@ describe("test/filesystem", () => {
 
         const views = await viewManager.queryView(view, "listAll");
         console.log("Views", views.length, JSON.stringify(views));
-        console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+        console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
     })
 
 
@@ -94,7 +94,7 @@ describe("test/filesystem", () => {
 
         const views = await viewManager.queryView(view, "list-all");
         console.log("Views", views.length, JSON.stringify(views));
-        console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+        console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
     })
 
 })

@@ -32,7 +32,7 @@ describe("test/filesystem", () => {
 
         const createdFile = await entityManager.createItem(fileToCreate);
         console.log("Created file", JSON.stringify(createdFile));
-        console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+        console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
 
         const fileToGet = EntityManager.load(DBFile);
         fileToGet.account = "acme";
@@ -41,14 +41,14 @@ describe("test/filesystem", () => {
 
         const foundFile = await entityManager.getItem(fileToGet);
         console.log("Found file", JSON.stringify(foundFile));
-        console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+        console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
 
         const fileToUpdate = foundFile;
         fileToUpdate.mimeType = "application/pdf";
 
         const updatedFile = await entityManager.updateItem(fileToUpdate);
         console.log("Updated file", JSON.stringify(updatedFile));
-        console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+        console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
     })
 
 })

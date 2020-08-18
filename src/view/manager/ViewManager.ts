@@ -144,7 +144,8 @@ export class ViewManager {
         // In order to create the entity instance we require the $type column, which is only guaranteed
         // to be present for PROJECTED_ALL. Next we load the source into the view.
         if (view.viewType.indexProjections === "PROJECTED_ALL") {
-            const entity = this._entityManager.loadFromDB2(data);
+            const entityType = EntityManager.getEntityType(data);
+            const entity = this._entityManager.loadFromDB(entityType, data);
             if (!view.canLoadSource(entity)) {
                 throw new Error(`Unable to load entity ${entity.entityType.def.name} as a source on view ${viewType.ctor.name}.`);
             }

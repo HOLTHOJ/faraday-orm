@@ -23,7 +23,6 @@ import {def, req} from "../../util/Req";
 import {ENTITY_DEF, ENTITY_REPO, EntityType} from "../annotation/Entity";
 import {EntityProxy} from "./EntityProxy";
 import {createEntityProxy} from "./EntityProxyImpl";
-import {ColumnDescription} from "..";
 import {Class} from "../../util/Class";
 import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
 import {PathToRegexpPathGenerator} from "../../util/PathToRegexpPathGenerator";
@@ -37,20 +36,17 @@ import {
 import {SessionManager} from "./SessionManager";
 
 /**
- * General config object to instantiate an EntityManager.
+ * General config object for the EntityManager.
  */
 export type EntityManagerConfig = {
 
     /** A user name to identify who is making the updates. */
     userName: string,
 
-    /**
-     * The table name.
-     * An entity manager can only work with one table at a time.
-     */
+    /** The table name. */
     tableName: string,
 
-    /** A custom path generator for this entity manger only. */
+    /** A custom path generator. */
     pathGenerator: PathGenerator,
 };
 
@@ -59,13 +55,22 @@ export type EntityManagerConfig = {
  */
 export class EntityManager {
 
+    /** Global config as a fallback for all Entity manager instances. */
     public static GLOBAL_CONFIG ?: Partial<EntityManagerConfig>;
-    public static TYPE_COLUMN: ColumnDescription<string> = {name: "$type", converter: StringConverter};
+
+    /** The technical column that is used to match the db item with the model  */
+    public static TYPE_COLUMN = {name: "$type", converter: StringConverter};
 
     private static CB: EntityManagerCallbackChain = new DefaultEntityManagerCallback();
 
+    /**
+     * The config of this entity manager.
+     * This is the actual configuration that is used (it only contains default from GLOBAL_CONFIG).
+     */
     public readonly config: EntityManagerConfig;
-    public readonly transactionManager: SessionManager;
+
+    /** The session manager keeps track of all the database calls made by this Entity manager instance. */
+    public readonly sessionManager: SessionManager;
 
     private constructor(config?: Partial<EntityManagerConfig>) {
         this.config = {
@@ -73,13 +78,17 @@ export class EntityManager {
             tableName: req(config?.tableName || EntityManager.GLOBAL_CONFIG?.tableName, `Missing table name in config.`),
             pathGenerator: def(config?.pathGenerator || EntityManager.GLOBAL_CONFIG?.pathGenerator, new PathToRegexpPathGenerator()),
         }
-        this.transactionManager = new SessionManager();
+        this.sessionManager = new SessionManager();
     }
 
     public static get(config?: Partial<EntityManagerConfig>): EntityManager {
         return new EntityManager(config);
     }
 
+    /**
+     * Registers a callback in the callback chain.
+     * This is designed to be used by other frameworks to extend the entity manager.
+     */
     public static registerCallback(handler: EntityManagerCallback) {
         this.CB = new EntityManagerCallbackNotifier(handler, this.CB);
     }
@@ -89,13 +98,20 @@ export class EntityManager {
      ***************************************************************************************/
 
     /**
+     * Gets the entity that matches the Id values of the given entity.
      *
+     * If the given entity's type configuration has a KeyPath configured,
+     * then the Id values will first be compiled before querying the database.
      *
-     * @param getInput
+     * @param entity The entity to fetch.
+     *
+     * @throws Error if a required Id is not set.
+     *
+     * @return A new entity instance containing the database values.
      */
-    public getItem<E extends object>(getInput: E): Promise<E> {
+    public getItem<E extends object>(entity: E): Promise<E> {
         const key = new AttributeMapper();
-        const record = EntityManager.internal(getInput);
+        const record = EntityManager.internal(entity);
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -109,15 +125,23 @@ export class EntityManager {
     }
 
     /**
+     * Creates the given entity in the database.
      *
+     * This is an exclusive create function and will fail if the item already exists.
      *
+     * @param entity The entity to create.
      *
-     * @param createInput
+     * @throws Error if the item already exists.
+     * @throws Error if an internal field is set.
+     * @throws Error if a required Id is not set.
+     * @throws Error if a required Column is not set.
+     *
+     * @return A new entity instance containing the database values.
      */
-    public createItem<E extends object>(createInput: E): Promise<E> {
+    public createItem<E extends object>(entity: E): Promise<E> {
         const item = new AttributeMapper();
         const expected = new ExpectedMapper();
-        const record = EntityManager.internal(createInput);
+        const record = EntityManager.internal(entity);
 
         // Verify that internal fields are not set.
         record.forEachCol((col, value, valueIsSet) => {
@@ -143,13 +167,13 @@ export class EntityManager {
         record.forEachId((id, value) => {
             expected.setExists2(id.name, false);
             item.setValue(id, value);
-        });
+        }, true);
 
         // Validates that the required columns have a value,
         // and extract the columns that contain a value.
         record.forEachCol((col, value, valueIsSet) => {
             if (valueIsSet) item.setValue(col, value);
-        });
+        }, true);
 
         // Set the $type column
         item.setValue(EntityManager.TYPE_COLUMN, record.entityType.def.name);
@@ -158,14 +182,23 @@ export class EntityManager {
     }
 
     /**
+     * Deletes the entity that matches the Id values of the given entity.
      *
+     * If the given entity's type configuration has a KeyPath configured,
+     * then the Id values will first be compiled before querying the database.
      *
+     * @param entity The entity to delete.
      *
+     * @throws Error if an internal field is changed.
+     * @throws Error if a required Id is not set.
+     * @throws Error if a required Column is not set.
+     *
+     * @return A new entity instance containing the deleted item.
      */
-    public deleteItem<E extends object>(deleteInput: E): Promise<E> {
+    public deleteItem<E extends object>(entity: E): Promise<E> {
         const key = new AttributeMapper();
         const expected = new ExpectedMapper();
-        const record = EntityManager.internal(deleteInput);
+        const record = EntityManager.internal(entity);
 
         // Set all provided fields as expected.
         record.forEachCol((col, value, valueIsSet) => {
@@ -187,13 +220,26 @@ export class EntityManager {
     }
 
     /**
+     * Updates the given entity in the database.
      *
+     * This will completely override the item in the database with the values of the given entity.
      *
+     * @param entity            The new version of the entity to update.
+     * @param expectedEntity    The old version of the entity that we currently expect to be in the database.
+     *                          Not all fields need to be populated, only the fields that are set are verified.
      *
+     * @throws Error if the item does not exist.
+     * @throws Error if an internal field is changed.
+     * @throws Error if a required Id is not set.
+     * @throws Error if a required Column is not set.
+     * @throws Error if an expected value does not match with the database value.
+     * @throws Error if the entity type of the given entity and expected entity are not the same.
+     *
+     * @return A new entity instance containing the new updated item.
      */
-    public async updateItem<E extends object>(updateInput: E, expectd ?: E): Promise<E> {
-        const record = EntityManager.internal(updateInput);
-        const expected = EntityManager.internal(expectd || EntityManager.load(record.entityType));
+    public async updateItem<E extends object>(entity: E, expectedEntity ?: E): Promise<E> {
+        const record = EntityManager.internal(entity);
+        const expected = EntityManager.internal(expectedEntity || EntityManager.load(record.entityType));
 
         // Validate that record & expected are the same type.
         if (record.entityType !== expected.entityType) throw new Error(`Inconsistent types.`);
@@ -240,12 +286,14 @@ export class EntityManager {
     /**
      * Loads the given DynamoDB Attribute map into a new managed entity of the given type.
      *
-     * NOTE : This is a low-level internal function.
-     * If you need to load a new entity from the database, it is preferred to use getItem() instead.
+     * @internal If you need to load a new entity from the database, it is preferred to use getItem() instead.
      *
-     * @param entityType
-     * @param data
+     * @param entityType    The entity type to create.
+     * @param data          The DynamoDB item data.
+     *
      * @throws Error if the DB Row type and Entity type don't match.
+     *
+     * @return A new entity instance containing the given attribute values.
      */
     public loadFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): EntityProxy<E> {
         const item = new AttributeMapper(data);
@@ -283,51 +331,74 @@ export class EntityManager {
      ***************************************************************************************/
 
     /**
+     * Tests if the given entity is a managed entity.
+     * A managed entity is an entity that is first loaded by the Entity Manager,
+     * and is enhanced with some additional technical methods needed by the Entity Manager.
      *
-     * @param item
+     * @param entity The entity instance to test.
+     *
+     * @see EntityManager#load
+     * @return The same entity type-casted as Entity Proxy if managed.
      */
-    public static getEntityType<E extends object>(item: AttributeMapper): EntityType<E> {
-        const entityTypeValue = item.getRequiredValue(EntityManager.TYPE_COLUMN);
-        return this.getEntityType2<E>(entityTypeValue);
-    }
-
     public static isManaged<E extends object>(entity: E): entity is EntityProxy<E> {
         return (entity as EntityProxy<E>).entityType !== undefined;
     }
 
+    /**
+     * Casts the given entity to a managed entity, if the entity instance is actually managed.
+     *
+     * @param entity The entity instance to cast.
+     *
+     * @throws Error if the given entity instance is not a managed instance.
+     *
+     * @see EntityManager#load
+     * @see EntityManager#isManaged
+     * @return The same entity type-casted as Entity Proxy if managed.
+     */
     public static internal<X extends object>(entity: X): EntityProxy<X> {
         if (this.isManaged(entity)) return entity;
         throw new Error(`Entity ${entity.constructor} is not a managed entity. Load it in the entity manager first.`);
     }
 
-    public loadFromDB2(data: DynamoDB.AttributeMap): EntityProxy<object> {
-        const item = new AttributeMapper(data);
-        const type = item.getRequiredValue(EntityManager.TYPE_COLUMN);
-        return this.loadFromDB(EntityManager.getEntityType2(type), data);
-    }
-
     /**
+     * Loads the given entity type into a managed entity instance.
+     * Every entity type should first be loaded before it can be used in any of the Entity Manager's CRUD operations.
      *
-     * @param entityType
+     * @param entityType The entity type to load.
+     *
+     * @see EntityManager#getEntityType
+     * @return A new managed entity instance.
      */
     public static load<X extends object>(entityType: string | Class<X> | EntityType<X>): EntityProxy<X> {
         const type = (typeof entityType === "function" || typeof entityType === "string")
-            ? EntityManager.getEntityType2(entityType) : entityType;
+            ? EntityManager.getEntityType(entityType) : entityType;
         return new (createEntityProxy(type))();
     }
 
     /**
+     * Gets the entity type from the given entity information.
      *
-     * @param {string | EntityDef<E>} entity
-     * @return {EntityType<E>}
+     * @param entity    The entity can be
+     *                   - the entity type name defined in the @Entity annotation
+     *                   - the entity model class (constructor)
+     *                   - a DynamoDB item (attribute map)
+     *
+     * @throws Error if no entity type could be found.
+     *
+     * @see Entity
+     * @see ENTITY_DEF
+     * @see ENTITY_REPO
+     * @return The entity type if found.
      */
-    public static getEntityType2<E extends object = any>(entity: string | Class<E> | Function): EntityType<E> {
+    public static getEntityType<E extends object = any>(entity: string | Class<E> | Function | DynamoDB.AttributeMap): EntityType<E> {
         if (typeof entity === "string") {
             return req(ENTITY_REPO.get(entity), `Invalid entity type name ${entity}.`);
-            // } else if (typeof entity === "object") {
-            //     return req(ENTITY_DEF.get(entity.constructor), `Invalid entity type ${entity}.`);
-        } else {
+        } else if (typeof entity === "function") {
             return req(ENTITY_DEF.get(entity), `Invalid entity type ${entity}.`);
+        } else {
+            const item = new AttributeMapper(entity);
+            const type = item.getRequiredValue(EntityManager.TYPE_COLUMN);
+            return req(ENTITY_REPO.get(type), `Invalid entity type name ${entity}.`);
         }
     }
 

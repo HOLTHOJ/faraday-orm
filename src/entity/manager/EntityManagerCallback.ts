@@ -68,7 +68,6 @@ export class EntityManagerCallbackNotifier implements EntityManagerCallbackChain
     }
 
     getItem<E extends object>(manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper): Promise<E> {
-        console.log("Getting item", this.cb, this.cbc);
         return this.cb.getItem(this.cbc, manager, record, item);
     }
 
@@ -95,7 +94,7 @@ export class DefaultEntityManagerCallback implements EntityManagerCallbackChain 
             ReturnConsumedCapacity: "TOTAL",
         };
 
-        const data = await manager.transactionManager.getItem(input).promise();
+        const data = await manager.sessionManager.getItem(input).promise();
         return manager.loadFromDB(record.entityType, req(data.Item, `Item not found.`));
     }
 
@@ -107,7 +106,7 @@ export class DefaultEntityManagerCallback implements EntityManagerCallbackChain 
             ReturnConsumedCapacity: "TOTAL",
         };
 
-        const data = await manager.transactionManager.putItem(input).promise();
+        const data = await manager.sessionManager.putItem(input).promise();
         return manager.loadFromDB(record.entityType, item.toMap());
     }
 
@@ -120,7 +119,7 @@ export class DefaultEntityManagerCallback implements EntityManagerCallbackChain 
             ReturnConsumedCapacity: "TOTAL",
         };
 
-        const data = await manager.transactionManager.deleteItem(input).promise();
+        const data = await manager.sessionManager.deleteItem(input).promise();
         return manager.loadFromDB(record.entityType, req(data.Attributes, `Item not found.`));
     }
 
@@ -132,7 +131,7 @@ export class DefaultEntityManagerCallback implements EntityManagerCallbackChain 
             ReturnConsumedCapacity: "TOTAL",
         };
 
-        const data = await manager.transactionManager.putItem(input).promise();
+        const data = await manager.sessionManager.putItem(input).promise();
         return manager.loadFromDB(record.entityType, item.toMap());
     }
 }
