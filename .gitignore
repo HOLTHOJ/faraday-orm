@@ -106,5 +106,7 @@ dist
 # JetBrains Webstorm
 .idea/
 
-# TS Build directory
+# Build directories
 build/
+lib/
+dist/

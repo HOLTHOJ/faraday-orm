@@ -5,15 +5,14 @@
     "allowJs": false,
     "checkJs": false,
     "declaration": true,
-    "outDir": "./build",
+    "outDir": "./lib",
     "removeComments": true,
     "strict": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "experimentalDecorators": true
   },
   "include": [
-    "src/**/*",
-    "test/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules"
