@@ -22,7 +22,7 @@ import {Request} from "aws-sdk/lib/request";
 /**
  * The default session manager that flushes each operation immediately to the DB.
  *
- * @todo Make an implementation that makes use of the DynamoDB Transact API.
+ * @todo Make a separate implementation that makes use of the DynamoDB Transact API.
  */
 export class SessionManager {
 
@@ -47,9 +47,7 @@ export class SessionManager {
         return item;
     }
 
-    putItem(params: DynamoDB.Types.PutItemInput, callback?: (err: AWSError, data: DynamoDB.Types.PutItemOutput) => void): Request<DynamoDB.Types.PutItemOutput, AWSError>;
-    putItem(callback?: (err: AWSError, data: DynamoDB.Types.PutItemOutput) => void): Request<DynamoDB.Types.PutItemOutput, AWSError>;
-    putItem(params?: DynamoDB.PutItemInput | ((err: AWSError, data: DynamoDB.PutItemOutput) => void)): Request<DynamoDB.PutItemOutput, AWSError> {
+    putItem(params: DynamoDB.PutItemInput): Request<DynamoDB.PutItemOutput, AWSError> {
         if (typeof params !== "object") throw new Error(`Unknown operation.`);
 
         const item = this.db.putItem(params);
@@ -61,9 +59,7 @@ export class SessionManager {
         return item;
     }
 
-    deleteItem(params: DynamoDB.DeleteItemInput, callback?: (err: AWSError, data: DynamoDB.DeleteItemOutput) => void): Request<DynamoDB.DeleteItemOutput, AWSError>;
-    deleteItem(callback?: (err: AWSError, data: DynamoDB.DeleteItemOutput) => void): Request<DynamoDB.DeleteItemOutput, AWSError>;
-    deleteItem(params?: DynamoDB.DeleteItemInput | ((err: AWSError, data: DynamoDB.DeleteItemOutput) => void)): Request<DynamoDB.DeleteItemOutput, AWSError> {
+    deleteItem(params: DynamoDB.DeleteItemInput): Request<DynamoDB.DeleteItemOutput, AWSError> {
         if (typeof params !== "object") throw new Error(`Unknown operation.`);
 
         const item = this.db.deleteItem(params);
