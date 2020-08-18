@@ -1,5 +1,3 @@
-STATUS: in development (no release yet)
-
 # Faraday-orm
 DynamoDB is a noSQL database, which means its data consists of "documents". 
 Documents do not have a strongly defined structure, and apart from the indexable columns, 
@@ -228,5 +226,4 @@ We always appreciate hearing from you when our libraries are used in your projec
 
 ## TODO
 
-* Currently, paths for PK and SK are evaluated using the "path-to-regexp" (MIT license) library. 
-This needs to be abstracted so clients can use any framework or custom code to evaluate the path strings.
+* Add @Embedded annotation to create aggregate entities.
