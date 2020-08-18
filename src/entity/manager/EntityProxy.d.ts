@@ -20,17 +20,14 @@ import {CallbackOperation, ColumnDef, EntityType, IdColumnDef} from "..";
 import {PathGenerator} from "../../util/KeyPath";
 import {EntityManagerConfig} from "./EntityManager";
 
-/** */
-export type EntityProxy<E extends object = any> = E & EntityExtMethods<E>;
+/** A managed entity. */
+export type EntityProxy<E extends object = any> = E & EntityProxyMethods<E>;
 
-/** */
-export type EntityExtMethods<E extends object = any> = {
+/** Methods that are added to a model class when it is managed. */
+export type EntityProxyMethods<E extends object = any> = {
 
     /** The entity type configuration. */
     readonly entityType: EntityType<E>;
-
-    // /** The entity manager that loaded this entity. */
-    // readonly entityManager: EntityManager;
 
     getValue(propName: PropertyKey): any;
 
@@ -38,27 +35,33 @@ export type EntityExtMethods<E extends object = any> = {
 
     /**
      * Compiles the key paths using this Entity instance and populates their resp. properties.
+     *
+     * @param defaultPathGenerator  This Path generator will be used if the entity definition
+     *                              did not define a Path generator itself.
      */
     compileKeys(defaultPathGenerator: PathGenerator): void
 
     /**
      * Parses the key paths using this Entity instance and populates their resp. properties.
+     *
+     * @param defaultPathGenerator  This Path generator will be used if the entity definition
+     *                              did not define a Path generator itself.
      */
     parseKeys(defaultPathGenerator: PathGenerator): void;
 
     /**
+     * Loops over each Id defined on this entity.
      *
-     * @param block
-     * @param validateRequired
+     * @param block             Block to execute for each Id.
+     * @param validateRequired  If TRUE then each Id column will be validated that it contains a value.
      */
     forEachId(block: (id: IdColumnDef, value: any, valueIsSet: boolean) => void, validateRequired?: boolean): void;
 
     /**
+     * Loops over each Column defined on this entity (include Internal columns).
      *
-     * -> Includes @Internal columns.
-     *
-     * @param block
-     * @param validateRequired
+     * @param block             Block to execute for each Id.
+     * @param validateRequired  If TRUE then each required column will be validated that it contains a value.
      */
     forEachCol(block: (col: ColumnDef, value: any | undefined, valueIsSet: boolean) => void, validateRequired?: boolean): void;
 

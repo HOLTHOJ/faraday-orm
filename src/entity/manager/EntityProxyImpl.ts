@@ -17,23 +17,22 @@
  */
 
 import {CallbackOperation, ColumnDef, EntityType, IdColumnDef} from "..";
-import {EntityExtMethods, EntityProxy} from "./EntityProxy";
+import {EntityProxy, EntityProxyMethods} from "./EntityProxy";
 import {UNDEFINED} from "../../util/Undefined";
 import {req} from "../../util/Req";
 import {PathGenerator} from "../../util/KeyPath";
 import {EntityManagerConfig} from "./EntityManager";
 
+/**
+ * @internal Implementation of the EntityProxyMethods.
+ */
 export function createEntityProxy(entityType: EntityType): { new(): EntityProxy } {
 
-    const newCtor = class extends entityType.def.ctor implements EntityExtMethods {
+    const newCtor = class extends entityType.def.ctor implements EntityProxyMethods {
 
         public get entityType(): EntityType {
             return entityType;
         }
-
-        // public get entityManager(): EntityManager {
-        //     return entityManager;
-        // }
 
         public getValue(propName: PropertyKey): any {
             // @ts-ignore
