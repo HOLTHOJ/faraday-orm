@@ -22,7 +22,6 @@ export {CallbackOperation} from "./annotation/Callback";
 
 export {Column} from "./annotation/Column";
 export {ColumnDef} from "./annotation/Column";
-export {ColumnDescription} from "./annotation/Column";
 
 export {Entity} from "./annotation/Entity";
 export {EntityDef} from "./annotation/Entity";
@@ -31,7 +30,6 @@ export {EntityType} from "./annotation/Entity";
 export {Id} from "./annotation/Id";
 export {IdType} from "./annotation/Id";
 export {IdColumnDef} from "./annotation/Id";
-export {IdGenerator} from "./annotation/Id";
 
 export {Internal} from "./annotation/Internal";
 
