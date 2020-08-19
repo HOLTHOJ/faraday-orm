@@ -17,8 +17,8 @@
  */
 
 import {Callback, CallbackOperation, Internal} from "..";
-import {UNDEFINED} from "../../util/Undefined";
-import {NumberConverter} from "../../converter/NumberConverter";
+import {UNDEFINED} from "../../util";
+import {NumberConverter} from "../../converter";
 import {Keyable} from "./Keyable";
 
 /**
@@ -29,24 +29,24 @@ import {Keyable} from "./Keyable";
 export abstract class Versionable extends Keyable {
 
     @Internal("$v", NumberConverter, true)
-    public $version: number = UNDEFINED;
+    public _version: number = UNDEFINED;
 
     @Callback()
     updateVersion(operation: CallbackOperation): void {
         const now = new Date();
         switch (operation) {
             case "INSERT":
-                this.$version = 1;
+                this._version = 1;
                 break;
             case "UPDATE":
-                this.$version += 1;
+                this._version += 1;
                 break;
         }
     }
 
     @Callback()
     validateVersion(action: CallbackOperation) {
-        if (action === "DELETE" && this.$version < 1) {
+        if (action === "DELETE" && this._version < 1) {
             throw new Error(`Require a version.`);
         }
     }

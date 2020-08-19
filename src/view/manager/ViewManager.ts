@@ -32,10 +32,10 @@ import {EntityType} from "../../entity";
  */
 export class ViewManager {
 
-    private readonly _entityManager: EntityManager;
+    public readonly entityManager: EntityManager;
 
     private constructor(entityManager: EntityManager) {
-        this._entityManager = entityManager;
+        this.entityManager = entityManager;
     }
 
     static get(entityManager: EntityManager) {
@@ -74,10 +74,10 @@ export class ViewManager {
         const viewQuery = single(VIEW_QUERY_DEF.get(viewType.ctor)!.filter(elt => elt.name === queryName),
             `Invalid query name ${queryName}. Not found on ${viewType.ctor}.`);
 
-        view.parseKeys(this._entityManager.config.pathGenerator, viewQuery.pk, viewQuery.sk);
+        view.parseKeys(this.entityManager.config.pathGenerator, viewQuery.pk, viewQuery.sk);
 
         const queryInput: DynamoDB.QueryInput = {
-            TableName: this._entityManager.config.tableName,
+            TableName: this.entityManager.config.tableName,
             IndexName: viewType.indexName,
             KeyConditions: {}
         }
@@ -112,7 +112,7 @@ export class ViewManager {
         return entityViewTypes.map(elt => {
             const view = ViewManager.loadView(elt);
             if (loadSource) {
-                view.loadSource(entity, false, true, this._entityManager.config.pathGenerator);
+                view.loadSource(entity, false, true, this.entityManager.config.pathGenerator);
             }
             return view;
         });
@@ -145,7 +145,7 @@ export class ViewManager {
         // to be present for PROJECTED_ALL. Next we load the source into the view.
         if (view.viewType.indexProjections === "PROJECTED_ALL") {
             const entityType = EntityManager.getEntityType(data);
-            const entity = this._entityManager.loadFromDB(entityType, data);
+            const entity = this.entityManager.loadFromDB(entityType, data);
             if (!view.canLoadSource(entity)) {
                 throw new Error(`Unable to load entity ${entity.entityType.def.name} as a source on view ${viewType.ctor.name}.`);
             }

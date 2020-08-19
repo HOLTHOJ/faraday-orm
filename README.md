@@ -46,42 +46,27 @@ It also avoids having to add the `| undefined` union type each field.
 
 The full version of this example can be found in the test cases: [DBFile.ts](test/filesystem/model/DBFile.ts).
 ```typescript
-
-@Entity("file", {pkPath: ":account/:directory", skPath: ":fileName"})
-export class DBFile extends Versionable {
+@Entity("fs/file", {pkPath: ":account/:directory", skPath: "file/:fileName"})
+export class DBFile extends Editable {
 
     public account: string = UNDEFINED
 
     public directory: string = UNDEFINED
+    
+    public fileName: string = UNDEFINED
 
     @Id("PK", "pk")
     public parent: string = UNDEFINED
 
     @Id("SK", "sk")
-    public fileName: string = UNDEFINED
+    public file: string = UNDEFINED
 
     @Column("mimeType", StringConverter)
-    public mimeType: string = UNDEFINED
+    public mimeType?: string = UNDEFINED
 
-    @Column("size", NumberConverter)
+    @Column("size", NumberConverter, true, () => -1)
     public size: number = UNDEFINED
 
-    @Internal("ct", DateNumberConverter, true)
-    public createTime: Date = UNDEFINED;
-
-    @Internal("ut", DateNumberConverter, true)
-    public updateTime: Date = UNDEFINED;
-
-    @Callback()
-    updateTimestamp(operation: CallbackOperation) {
-        const now = new Date();
-        switch (operation) {
-            case "INSERT":
-                this.createTime = now;
-            case "UPDATE":
-                this.updateTime = now;
-        }
-    }
 }
 ``` 
 
@@ -116,26 +101,27 @@ const fileToCreate = EntityManager.load(DBFile);
 fileToCreate.account = "acme";          // Partial PK
 fileToCreate.directory = "root";        // Partial PK
 fileToCreate.fileName = "test-file";    // SK
+fileToCreate.mimeType = "text/plain";
 
 const createdFile = await entityManager.createItem(fileToCreate);
 console.log("Created file", JSON.stringify(createdFile));
-console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
 
 const fileToGet = EntityManager.load(DBFile);
-fileToGet.account = "acme";
-fileToGet.directory = "root";
-fileToGet.fileName = "test-file";
+fileToGet.account = "acme";         // Partial PK
+fileToGet.directory = "root";       // Partial PK
+fileToGet.fileName = "test-file";   // SK
 
 const foundFile = await entityManager.getItem(fileToGet);
 console.log("Found file", JSON.stringify(foundFile));
-console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
 
 const fileToUpdate = fileToGet;             // You can also reuse already managed instances.
-fileToUpdate.mimeType = "application/pdf";  // Now we only need to set what we want to change.
+fileToUpdate.mimeType = "application/pdf";  // Now we only need to update the field we want to change.
 
 const updatedFile = await entityManager.updateItem(fileToUpdate);
 console.log("Updated file", JSON.stringify(updatedFile));
-console.log("Capacity", entityManager.transactionManager.lastLog?.capacity);
+console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
 ```
 
 ## View datamodel
@@ -227,3 +213,4 @@ We always appreciate hearing from you when our libraries are used in your projec
 ## TODO
 
 * Add @Embedded annotation to create aggregate entities.
+

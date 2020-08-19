@@ -17,7 +17,7 @@
  */
 
 import {Callback, CallbackOperation} from "..";
-import {UNDEFINED} from "../../util/Undefined";
+import {UNDEFINED} from "../../util";
 
 /**
  * A keyable DB record.
@@ -37,7 +37,7 @@ export abstract class Keyable {
     /**
      * The unique internal id of this record.
      */
-    public $id: string = UNDEFINED;
+    public _id: string = UNDEFINED;
 
     private readonly _generator: () => string;
 
@@ -47,8 +47,8 @@ export abstract class Keyable {
 
     @Callback()
     generateId(operation: CallbackOperation): void {
-        if (operation === "INSERT" && this.$id === UNDEFINED) {
-            this.$id = Keyable.generateUUID();
+        if (operation === "INSERT" && this._id === UNDEFINED) {
+            this._id = Keyable.generateUUID();
         }
     }
 

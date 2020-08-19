@@ -17,9 +17,8 @@
  */
 
 import {Callback, CallbackOperation, Internal} from "..";
-import {DateNumberConverter} from "../../converter/DateNumberConverter";
-import {StringConverter} from "../../converter/StringConverter";
-import {UNDEFINED} from "../../util/Undefined";
+import {DateNumberConverter, StringConverter} from "../../converter";
+import {UNDEFINED} from "../../util";
 import {Versionable} from "./Versionable";
 import {EntityManagerConfig} from "../manager/EntityManager";
 
@@ -36,28 +35,28 @@ import {EntityManagerConfig} from "../manager/EntityManager";
 export abstract class Editable extends Versionable {
 
     @Internal("$ct", DateNumberConverter, true)
-    public $createTime: Date = UNDEFINED;
+    public _createTime: Date = UNDEFINED;
 
     @Internal("$cu", StringConverter, true)
-    public $createUser: string = UNDEFINED;
+    public _createUser: string = UNDEFINED;
 
     @Internal("$ut", DateNumberConverter, true)
-    public $updateTime: Date = UNDEFINED;
+    public _updateTime: Date = UNDEFINED;
 
     @Internal("$uu", StringConverter, true)
-    public $updateUser: string = UNDEFINED;
+    public _updateUser: string = UNDEFINED;
 
     @Callback()
     updateEditableInternalFields(operation: CallbackOperation, config: EntityManagerConfig): void {
         const now = new Date();
         switch (operation) {
             case "INSERT":
-                this.$createTime = now;
-                this.$createUser = config.userName;
+                this._createTime = now;
+                this._createUser = config.userName;
             case "UPDATE":
             case "DELETE":
-                this.$updateTime = now;
-                this.$updateUser = config.userName;
+                this._updateTime = now;
+                this._updateUser = config.userName;
         }
     }
 
