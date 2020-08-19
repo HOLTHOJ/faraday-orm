@@ -16,7 +16,5 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-export * as entity from "./entity";
-export * as view from "./view";
-export * as converter from "./converter";
-export * as util from "./util";
+export {Class} from "./Class";
+export {KeyPath} from "./KeyPath";
