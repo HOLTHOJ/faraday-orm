@@ -70,4 +70,16 @@ export class SessionManager {
 
         return item;
     }
+
+    query(params: DynamoDB.Types.QueryInput, callback?: (err: AWSError, data: DynamoDB.Types.QueryOutput) => void): Request<DynamoDB.Types.QueryOutput, AWSError> {
+        if (typeof params !== "object") throw new Error(`Unknown operation.`);
+
+        const item = this.db.query(params);
+        item.on("success", response => {
+            const capacity = (typeof response.data == "object") ? response.data?.ConsumedCapacity : undefined;
+            this.log.push({timestamp: new Date(), input: JSON.stringify(params), capacity: capacity});
+        });
+
+        return item;
+    }
 }

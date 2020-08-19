@@ -91,7 +91,7 @@ export class ViewManager {
             }
         }, false);
 
-        const data = await new DynamoDB().query(queryInput).promise();
+        const data = await this.entityManager.sessionManager.query(queryInput).promise();
 
         // TODO : Implement optional aggregator.
         return (data.Items || []).map(elt => this.loadFromDB(viewType, elt));
