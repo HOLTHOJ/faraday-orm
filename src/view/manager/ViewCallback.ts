@@ -39,6 +39,16 @@ export class ViewCallback implements TransactionManagerCallback {
     }
 
     putItem<E extends object>(chain: TransactionManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<E> {
+        this.setViewIndexColumns(manager, record, item, expected);
+        return chain.putItem(manager, record, item, expected);
+    }
+
+    updateItem<E extends object>(chain: TransactionManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<E> {
+        this.setViewIndexColumns(manager, record, item, expected);
+        return chain.updateItem(manager, record, item, expected);
+    }
+
+    private setViewIndexColumns<E extends object>(manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper) {
         ViewManager.get(manager).getViewsForSource(record, true).forEach(view => {
             view.forEachId((id: ViewIdColumnDef, value: any, valueIsSet: boolean) => {
                 if (item.getValue(id) !== value) {
@@ -53,12 +63,6 @@ export class ViewCallback implements TransactionManagerCallback {
                 item.setValue({name: id.name, converter: id.converter}, value);
             }, true)
         });
-
-        return chain.putItem(manager, record, item, expected);
-    }
-
-    updateItem<E extends object>(chain: TransactionManagerCallbackChain, manager: EntityManager, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<E> {
-        return chain.updateItem(manager, record, item, expected);
     }
 
 }
