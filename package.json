@@ -1,6 +1,6 @@
 {
   "name": "faraday-orm",
-  "version": "1.1.11",
+  "version": "1.2.3",
   "description": "ORM framework for the DynamoDB database.",
   "main": "index.js",
   "directories": {
@@ -34,9 +34,10 @@
   "scripts": {
     "test-integration": "jest --clearCache && jest",
     "test-clean": "jest --clearCache",
-    "build": "tsc -p ./tsconfig.json",
+    "clean": "rm -rf lib",
+    "build": "npm run clean && tsc -p ./tsconfig.json",
     "prepare": "npm run build",
-    "f-pack": "echo \"Packing\" && tsc && mxp-bundle-npm",
+    "f-pack": "echo \"Packing\" && npm run build && mxp-bundle-npm",
     "f-publish": "npm run f-pack && mxp-deploy-npm"
   },
   "files": [
