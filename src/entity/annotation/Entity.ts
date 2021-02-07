@@ -19,8 +19,8 @@
 import {ENTITY_IDS, IdColumnDef} from "./Id";
 import {ColumnDef, ENTITY_COLS} from "./Column";
 import {CallbackDef, ENTITY_CALLBACKS} from "./Callback";
-import {Class} from "../../util/Class";
-import {one, single} from "../../util/Req";
+import {Class} from "../../util";
+import {one, single, unique} from "../../util/Req";
 import {KeyPath} from "../../util/KeyPath";
 
 /** The entity annotation definition. */
@@ -55,9 +55,9 @@ export type EntityType<E extends object = any> = {
     readonly sk?: IdColumnDef,
 
     /** The callbacks defined on this entity. */
-    readonly cback: CallbackDef[],
+    readonly cbs: CallbackDef[],
 
-    /** The (optional) custom toJSON() function defined on this entity type. */
+    /** The (optional) custom toJSON() function defined for this entity type. */
     readonly toJSON?: PropertyDescriptor,
 
 };
@@ -101,12 +101,12 @@ export function Entity(typeName: string, keyPath ?: KeyPath, generateStats: bool
         const entityDef: EntityDef = {ctor: ctor, name: typeName, generateStats: generateStats};
         const entityType: EntityType = {
             def: entityDef,
-            cols: cols,
+            cols: unique(cols, col => col.name, true, `Duplicate column names not allowed.`),
             keyPath: keyPath,
             pk: single(ids.filter(elt => elt.idType === "PK"), `Missing required PK Id Column.`),
             sk: one(ids.filter(elt => elt.idType === "SK"), `Illegal SK Id Column configuration.`),
             // embedded: e,
-            cback: cb.reverse(),
+            cbs: cb.reverse(),
             toJSON: tj,
         };
 
@@ -114,3 +114,4 @@ export function Entity(typeName: string, keyPath ?: KeyPath, generateStats: bool
         ENTITY_REPO.set(typeName, entityType);
     }
 }
+

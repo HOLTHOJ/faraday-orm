@@ -41,6 +41,23 @@ export type KeyPath = {
     pathGenerator?: PathGenerator
 };
 
+/**
+ *
+ */
+export type Path = {
+
+    /**
+     * The path. This will be fed to the PathGenerator and used as the Id column value.
+     */
+    path: string,
+
+    /**
+     * Defaults to a PathGenerator based on "path-to-regexp".
+     * @see PathToRegexpPathGenerator
+     */
+    pathGenerator?: PathGenerator
+};
+
 // TODO : return could be any "scalar" type.
 export interface PathGenerator {
     compile(entity: object, key: string): string,

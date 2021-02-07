@@ -21,4 +21,8 @@
  * Warning: Do not rely on the actual value of this constant as it may change without notice,
  * instead only use it to test if a value is set or not (by using it as the operand).
  */
-export const UNDEFINED: any = 0x00;
+// NOTE: If this field is not undefined or null, then Optional chaining (?.) will not work as expected.
+//       We could investigate using a proxy with no-op handlers that return undefined.
+//       Currently it can remain as NULL as we don't use the DynamoDB {NULL:true} attribute
+//       in our reference project.
+export const UNDEFINED: any = null;

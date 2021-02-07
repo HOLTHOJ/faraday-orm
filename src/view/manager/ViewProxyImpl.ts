@@ -17,12 +17,12 @@
  */
 
 import {ViewProxy, ViewProxyMethods} from "./ViewProxy";
-import {ViewColumnDef, ViewIdColumnDef, ViewType} from "..";
-import {EntityManager} from "../../entity";
-import {one, req} from "../../util/Req";
-import {UNDEFINED} from "../../util/Undefined";
-import {compile} from "path-to-regexp";
+import {ViewColumnDef, ViewIdColumnDef, ViewQueryDef, ViewSourceDef, ViewType} from "..";
+import {EntityManager, EntityType} from "../../entity";
+import {one, req, single} from "../../util/Req";
+import {UNDEFINED} from "../../util";
 import {PathGenerator} from "../../util/KeyPath";
+import {VIEW_QUERY_DEF} from "../annotation/ViewQuery";
 
 /**
  * Creates a ViewProxy from a View class.
@@ -74,45 +74,62 @@ export function createViewProxy(viewType: ViewType): { new(): ViewProxy } {
             });
         }
 
-        canLoadSource(entity: object): boolean {
-            const entityProxy = EntityManager.internal(entity);
-            const sourceDefs = this.viewType.sources
-                .filter(elt => elt.entityType === entityProxy.entityType)
-                .filter(elt => elt.cond ? elt.cond(entityProxy) : true);
-            return (sourceDefs.length === 1);
+        // canLoadSource(entity: object): boolean {
+        //     const source = this.getViewSource(entity);
+        //     if (typeof source === "undefined") return false;
+        //
+        //     const sourceFunc = req(this.getValue(source.propName),
+        //         `Missing source function ${source.propName}.`);
+        //
+        //     const loaded = sourceFunc.call(this, entity);
+        //     return (typeof loaded === "boolean") ? loaded : false;
+        //     // const entityProxy = EntityManager.internal(entity);
+        //     // const sourceDefs = this.viewType.sources
+        //     //     .filter(elt => elt.entityType === entityProxy.entityType)
+        //     //     .filter(elt => elt.cond ? elt.cond(entityProxy) : true);
+        //     // return (sourceDefs.length === 1);
+        // }
+
+        loadSource<E extends object>(source: ViewSourceDef<E>, entity: E, parseKeys: boolean = true, generator?: PathGenerator): boolean {
+            // If source is not valid, then nothing to load
+            // if (source.cond && !source.cond(entity)) return false;
+
+            // Condition is valid - import source and parse keys (if requested).
+            const sourceFunc = req(this.getValue(source.propName),
+                `Missing source function ${source.propName}.`);
+
+            const loaded = sourceFunc.call(this, entity);
+            if (typeof loaded === "boolean" && !loaded) return false;
+
+            if (parseKeys) {
+                this._compileKeys(req(generator), source.keyPath.pkPath, source.keyPath.skPath);
+            }
+
+            return true;
         }
 
-        loadSource(entity: object, validateCondition: boolean = false, parseSk: boolean = true, generator?: PathGenerator): void {
-            const entityProxy = EntityManager.internal(entity);
-            const entityType = entityProxy.entityType;
-            const sourceDef = one(this.viewType.sources
-                    .filter(elt => elt.entityType === entityProxy.entityType)
-                    .filter(elt => elt.cond ? elt.cond(entity) : true),
+        getViewQuery(queryName: string): ViewQueryDef {
+            return single(VIEW_QUERY_DEF.get(this.viewType.ctor)!.filter(elt => elt.name === queryName),
+                `Invalid query name ${queryName}. Not found on ${viewType.ctor}.`);
+        }
+
+        getViewSource<E extends object>(entityType: EntityType<E>): ViewSourceDef<E> | undefined {
+            return one(this.viewType.sources.filter(elt => elt.entityType === entityType),
+                // .filter(elt => elt.cond ? elt.cond(sourceEntity) : true),
                 `Missing source configuration for ${entityType}.`);
-
-            if (validateCondition && typeof sourceDef === "undefined") {
-                throw new Error(`Entity ${entityProxy.entityType.def.ctor.name} cannot be loaded into view ${this.viewType.ctor.name}.`);
-            }
-
-            // No source definition found, or condition failed, so nothing to load.
-            if (typeof sourceDef === "undefined") return;
-
-            const sourceFunc = req(this.getValue(sourceDef.propName),
-                `Missing source function ${sourceDef.propName}.`);
-            sourceFunc.call(this, entity);
-
-            if (parseSk) {
-                this.parseKeys(req(generator), sourceDef.keyPath.pkPath, sourceDef.keyPath.skPath);
-            }
         }
 
-        parseKeys(generator: PathGenerator, pkPath: string, skPath ?: string): void {
-            const pk = compile(pkPath)(this);
+        compileKeys(generator: PathGenerator, query: ViewQueryDef): void {
+            this._compileKeys(generator, req(query.pk), query.sk);
+        }
+
+        _compileKeys(generator: PathGenerator, pkPath: string, skPath ?: string): void {
+            const pk = generator.compile(this, pkPath);
             const pkCol = this.viewType.pk;
             this.setValue(pkCol.propName, pk);
 
             if (this.viewType.sk && skPath) {
-                const sk = compile(skPath)(this);
+                const sk = generator.compile(this, skPath);
                 const skCol = this.viewType.sk;
                 this.setValue(skCol.propName, sk);
             }

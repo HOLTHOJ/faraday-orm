@@ -33,7 +33,6 @@ export abstract class Versionable extends Keyable {
 
     @Callback()
     updateVersion(operation: CallbackOperation): void {
-        const now = new Date();
         switch (operation) {
             case "INSERT":
                 this._version = 1;
@@ -46,7 +45,7 @@ export abstract class Versionable extends Keyable {
 
     @Callback()
     validateVersion(action: CallbackOperation) {
-        if (action === "DELETE" && this._version < 1) {
+        if (action === "DELETE" && (Number.isNaN(Number(this._version)) || Number(this._version) < 1)) {
             throw new Error(`Require a version.`);
         }
     }

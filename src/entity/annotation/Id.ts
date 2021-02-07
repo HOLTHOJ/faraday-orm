@@ -17,8 +17,7 @@
  */
 
 import {ColumnDef} from "./Column";
-import {Converter} from "../../converter/Converter";
-import {StringConverter} from "../../converter/StringConverter";
+import {Converter, StringConverter} from "../../converter";
 
 /** The type of id column. PK = Partition Key, SK = Sort Key. */
 export type IdType = "PK" | "SK";

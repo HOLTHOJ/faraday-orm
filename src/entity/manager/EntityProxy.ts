@@ -19,6 +19,7 @@
 import {CallbackOperation, ColumnDef, EntityType, IdColumnDef} from "..";
 import {PathGenerator} from "../../util/KeyPath";
 import {EntityManagerConfig} from "./EntityManager";
+import {FacetType} from "../../facet/annotation/Facet";
 
 /** A managed entity. */
 export type EntityProxy<E extends object = any> = E & EntityProxyMethods<E>;
@@ -32,6 +33,15 @@ export type EntityProxyMethods<E extends object = any> = {
     getValue(propName: PropertyKey): any;
 
     setValue(propName: PropertyKey, value: any): void;
+
+    /**
+     * Returns the facet defined on this entity for the given query name.
+     *
+     * @param {string} queryName
+     * @throws Error if the query name is not unique on this entity.
+     * @return {Readonly<FacetType> | undefined}
+     */
+    getFacet(queryName: string): Readonly<FacetType> | undefined
 
     /**
      * Compiles the key paths using this Entity instance and populates their resp. properties.
@@ -58,12 +68,12 @@ export type EntityProxyMethods<E extends object = any> = {
     forEachId(block: (id: IdColumnDef, value: any, valueIsSet: boolean) => void, validateRequired?: boolean): void;
 
     /**
-     * Loops over each Column defined on this entity (include Internal columns).
+     * Loops over each Column defined on this entity (including @Internal columns).
      *
      * @param block             Block to execute for each Id.
      * @param validateRequired  If TRUE then each required column will be validated that it contains a value.
      */
-    forEachCol(block: (col: ColumnDef, value: any | undefined, valueIsSet: boolean) => void, validateRequired?: boolean): void;
+    forEachCol(block: (col: ColumnDef, value: any | undefined, valueIsSet: boolean) => void | boolean, validateRequired?: boolean): void;
 
     /**
      * Executes all the entity's callback functions in reverse order.

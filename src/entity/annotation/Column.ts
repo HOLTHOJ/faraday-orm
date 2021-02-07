@@ -16,7 +16,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Converter} from "../../converter/Converter";
+import {Converter} from "../../converter";
 
 /**
  * The definition of a database column defined on an Entity class.

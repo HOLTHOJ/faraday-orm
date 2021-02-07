@@ -18,10 +18,11 @@
 
 import {CallbackOperation, ColumnDef, EntityType, IdColumnDef} from "..";
 import {EntityProxy, EntityProxyMethods} from "./EntityProxy";
-import {UNDEFINED} from "../../util/Undefined";
-import {req} from "../../util/Req";
+import {UNDEFINED} from "../../util";
+import {one, req} from "../../util/Req";
 import {PathGenerator} from "../../util/KeyPath";
 import {EntityManagerConfig} from "./EntityManager";
+import {FACET_REPO, FacetType} from "../../facet/annotation/Facet";
 
 /**
  * @internal Implementation of the EntityProxyMethods.
@@ -44,6 +45,11 @@ export function createEntityProxy(entityType: EntityType): { new(): EntityProxy 
             this[propName] = value;
         }
 
+        public getFacet(queryName: string): Readonly<FacetType> | undefined {
+            const entityFacets = FACET_REPO.get(this.entityType.def.ctor);
+            return entityFacets && one(entityFacets.filter(elt => elt.queryName === queryName));
+        }
+
         public forEachId(block: (id: IdColumnDef, value: any, valueIsSet: boolean) => void, validateRequired: boolean = true): void {
             const pk = this.entityType.pk;
             const pkValue = this.getValue(pk.propName);
@@ -62,19 +68,19 @@ export function createEntityProxy(entityType: EntityType): { new(): EntityProxy 
             }
         };
 
-        public forEachCol<E>(block: (col: ColumnDef, value: any | undefined, valueIsSet: boolean) => void, validateRequired: boolean = true): void {
-            this.entityType.cols.forEach(col => {
+        public forEachCol<E>(block: (col: ColumnDef, value: any | undefined, valueIsSet: boolean) => void | boolean, validateRequired: boolean = true): void {
+            this.entityType.cols.some(col => {
                 const value = this.getValue(col.propName);
                 if (validateRequired && col.required && value === UNDEFINED) {
                     throw new Error(`Missing required field ${col.propName}.`);
                 }
 
-                block(col, value, value !== UNDEFINED);
+                return block(col, value, value !== UNDEFINED);
             });
         }
 
         public executeCallbacks<E>(operation: CallbackOperation, config: EntityManagerConfig) {
-            this.entityType.cback.forEach(cback => {
+            this.entityType.cbs.forEach(cback => {
                 this.getValue(cback.propName).call(this, operation, config);
             });
         }
@@ -86,11 +92,9 @@ export function createEntityProxy(entityType: EntityType): { new(): EntityProxy 
             const skPath = this.entityType.keyPath.skPath;
             const pathGenerator = this.entityType.keyPath.pathGenerator || defaultPathGenerator;
 
-            if (this.entityType.pk) {
-                const pkCol = this.entityType.pk;
-                const pkValue = pathGenerator.compile(this, req(pkPath));
-                this.setValue(pkCol.propName, pkValue);
-            }
+            const pkCol = this.entityType.pk;
+            const pkValue = pathGenerator.compile(this, req(pkPath));
+            this.setValue(pkCol.propName, pkValue);
 
             if (this.entityType.sk) {
                 const skCol = this.entityType.sk;
@@ -142,7 +146,7 @@ export function createEntityProxy(entityType: EntityType): { new(): EntityProxy 
         }
     }
 
-    Object.defineProperty(newCtor, "name", {value: entityType.def.ctor + "Proxy"});
+    Object.defineProperty(newCtor, "name", {value: entityType.def.ctor.name + "Proxy"});
 
     return newCtor;
 }

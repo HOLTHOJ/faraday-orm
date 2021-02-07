@@ -24,7 +24,7 @@ import {PathGenerator} from "./KeyPath";
  */
 export class PathToRegexpPathGenerator implements PathGenerator {
     compile(entity: object, key: string) {
-        return compile(key)(entity);
+        return compile(key, {validate: false})(entity);
     }
 
     parse(path: string, key: string) {

@@ -34,9 +34,7 @@ import {UNDEFINED} from "../../util";
  */
 export abstract class Keyable {
 
-    /**
-     * The unique internal id of this record.
-     */
+    /** The unique internal id of this record. */
     public _id: string = UNDEFINED;
 
     private readonly _generator: () => string;

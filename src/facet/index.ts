@@ -16,33 +16,6 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {DBFile} from "../model/DBFile";
-import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../src/view";
-import {UNDEFINED} from "../../../src/util/Undefined";
-
-@View("default")
-@ViewQuery("listAll", ":account/:directory", "file/", "BEGINS_WITH")
-export class DBFileView {
-
-    public account: string = UNDEFINED
-
-    public directory: string = UNDEFINED
-
-    @ViewId("PK", "pk")
-    public parent: string = UNDEFINED
-
-    @ViewId("SK", "sk")
-    public fileId: string = UNDEFINED;
-
-    @ViewColumn()
-    public file: DBFile = UNDEFINED;
-
-    @ViewSource(DBFile, {pkPath: ":account/:directory", skPath: "file/"})
-    public loadFile(value: DBFile) : boolean {
-        this.file = value;
-        this.account = value.account;
-        this.directory = value.directory;
-        return true;
-    }
-
-}
+export {Facet} from "./annotation/Facet";
+export {FacetId} from "./annotation/FacetId";
+export {FacetManager} from "./manager/FacetManager";

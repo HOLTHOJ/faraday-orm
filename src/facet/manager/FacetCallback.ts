@@ -16,11 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {EntityManager, IdColumnDef} from "../../entity";
 import {EntityProxy} from "../../entity/manager/EntityProxy";
 import {AttributeMapper} from "../../util/mapper/AttributeMapper";
-import {ViewManager} from "./ViewManager";
-import {ViewIdColumnDef} from "..";
 import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
 import {
     GetItemInput,
@@ -29,21 +26,18 @@ import {
     TransactionCallbackChain
 } from "../../entity/manager/TransactionCallback";
 import {DynamoDB} from "aws-sdk";
-import {EntityManagerConfig} from "../../entity/manager/EntityManager";
-import {ViewProxy} from "./ViewProxy";
-import {VIEW_SOURCE_ENTITIES} from "../annotation/View";
 import {TransactionFactory} from "../../entity/manager/TransactionFactory";
-import {req} from "../../util/Req";
+import {EntityManagerConfig} from "../../entity/manager/EntityManager";
 
-export class ViewTransactionFactory implements TransactionFactory {
+export class FacetTransactionFactory implements TransactionFactory {
 
     createTransaction(session: EntityManagerConfig): TransactionCallback {
-        return new ViewCallback(session);
+        return new FacetCallback(session);
     }
 
 }
 
-class ViewCallback implements TransactionCallback {
+class FacetCallback implements TransactionCallback {
 
     private readonly session: EntityManagerConfig;
 
@@ -64,47 +58,25 @@ class ViewCallback implements TransactionCallback {
     }
 
     putItem<E extends object>(chain: TransactionCallbackChain, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
-        this.setViewIndexColumns(record, item, expected);
+        this.setFacetIndexColumns(record, item, expected);
         return chain.putItem(record, item, expected);
     }
 
     updateItem<E extends object>(chain: TransactionCallbackChain, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
-        this.setViewIndexColumns(record, item, expected);
+        this.setFacetIndexColumns(record, item, expected);
         return chain.updateItem(record, item, expected);
     }
 
-    private setViewIndexColumns<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper) {
-        const entityType = EntityManager.internal(record).entityType;
-        const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType) || [];
-        entityViewTypes.forEach(elt => {
-            const view = ViewManager.loadView(elt);
-            const viewSource = req(view.getViewSource(record.entityType));
-            if (view.loadSource(viewSource, record, true, this.session.pathGenerator)) {
-                // Source is loaded and the keys are set..
-                ViewCallback.addViewIdsToItem(view, record, item);
-            } else {
-                // Source could not be loaded - reset keys.
-                item.setValue(elt.pk, undefined);
-                if (elt.sk) item.setValue(elt.sk, undefined);
-            }
-
-            return view;
-        });
-    }
-
-    private static addViewIdsToItem(view: ViewProxy, record: EntityProxy, item: AttributeMapper) {
-        view.forEachId((id: ViewIdColumnDef, value: any, valueIsSet: boolean) => {
-            if (item.getValue(id) !== value) {
-                record.forEachId((recordId: IdColumnDef) => {
-                    if (id.name === recordId.name) {
-                        throw new Error(`View ${view.viewType.ctor.name} is not allowed to override the ID values of the Entity.`);
-                    }
-                }, false);
-
-                console.warn(`Column ${id.name} will be overridden by View ${view.viewType.ctor.name}.`);
-            }
-            item.setValue({name: id.name, converter: id.converter}, value);
-        }, true)
+    private setFacetIndexColumns<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper) {
+        // const facetTypes = FacetManager.getFacetTypes(record.entityType.def.ctor);
+        // facetTypes.forEach(facetType => {
+        //     const facetPath = facetType.lsi.path;
+        //     if (facetPath) {
+        //         const facetPathGenerator = facetPath?.pathGenerator || manager.session.pathGenerator;
+        //         const facetCol = single(record.entityType.cols.filter(elt => elt.propName ===
+        // facetType.lsi.propName)); const facetValue = facetPathGenerator.compile(record, req(facetPath.path));  if
+        // (item.hasValue(facetCol)) console.warn(`Column ${facetCol.name} will be overridden by Facet
+        // ${facetType.lsi.facetName}.`);  item.setValue(facetCol, facetValue); } })
     }
 
 }

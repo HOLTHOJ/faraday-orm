@@ -17,7 +17,7 @@
  */
 
 import {EntityManager, EntityType} from "../../entity";
-import {Class} from "../../util/Class";
+import {Class} from "../../util";
 import {KeyPath} from "../../util/KeyPath";
 
 /**
@@ -27,7 +27,7 @@ export type ViewSourceDef<T extends object = any> = {
     propName: string,
     entityType: EntityType<T>,
     keyPath: KeyPath,
-    cond?: (elt: T) => boolean,
+    // cond?: (elt: T) => boolean,
 };
 
 /**
@@ -39,10 +39,11 @@ export const VIEW_SOURCE_DEF = new Map<Function, ViewSourceDef[]>();
  *
  * @param entityCtor The entity type that needs to be included in this view.
  * @param keyPath
- * @param cond A conditions that decides if the entity type needs to be included in this view.
  *
+ * @return The annotation function can return a boolean.
+ *         If it returns FALSE then this source cannot be loaded in this view.
  */
-export function ViewSource<S extends object>(entityCtor: Class<S>, keyPath: KeyPath, cond?: (elt: S) => boolean) {
+export function ViewSource<S extends object>(entityCtor: Class<S>, keyPath: KeyPath/*, cond?: (elt: S) => boolean*/) {
     return (target: any, propertyKey: string) => {
 
         // Lookup entityType; type needs to be loaded first.
@@ -52,7 +53,7 @@ export function ViewSource<S extends object>(entityCtor: Class<S>, keyPath: KeyP
             propName: propertyKey,
             entityType: entityType,
             keyPath: keyPath,
-            cond: cond,
+            // cond: cond,
         };
 
         if (VIEW_SOURCE_DEF.has(target.constructor)) {

@@ -54,7 +54,6 @@ export abstract class Editable extends Versionable {
                 this._createTime = now;
                 this._createUser = config.userName;
             case "UPDATE":
-            case "DELETE":
                 this._updateTime = now;
                 this._updateUser = config.userName;
         }

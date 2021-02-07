@@ -16,16 +16,17 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {req, single} from "../../util/Req";
+import {req} from "../../util/Req";
 import {DynamoDB} from "aws-sdk";
 import {ViewProxy} from "./ViewProxy";
 import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {createViewProxy} from "./ViewProxyImpl";
-import {VIEW_DEF, VIEW_SOURCE_ENTITIES, ViewType} from "../annotation/View";
-import {VIEW_QUERY_DEF} from "../annotation/ViewQuery";
-import {EntityManager} from "../../entity/manager/EntityManager";
-import {Class} from "../../util/Class";
-import {EntityType} from "../../entity";
+import {VIEW_DEF, ViewType} from "../annotation/View";
+import {EntityManager, EntityType} from "../../entity";
+import {Class} from "../../util";
+import {ConditionMapper} from "../../util/mapper/ConditionMapper";
+import {QueryInput} from "../../entity/manager/TransactionCallback";
+import {ResultSet} from "../../util/ResultSet";
 
 /**
  * View manager.
@@ -64,37 +65,36 @@ export class ViewManager {
 
     /**
      * Queries the View. The query name is used to lookup the correct @ViewQuery configuration
-     * which defines the PK and SK paths to use. The View instance itself contains the values to use in the query paths.
+     * which defines the PK and SK paths to use. The View instance itself contains the values to use in the query
+     * paths.
      *
-     * @param view      The View instance that from which the values that are needed to generate the query will be read.
+     * @param view The View instance that from which the values that are needed to generate the query will be read.
      * @param queryName The name of the query needed to lookup the correct @ViewQuery annotation.
      */
-    public async queryView<V extends object>(view: ViewProxy<V>, queryName: string): Promise<V[]> {
-        const viewType = view.viewType;
-        const viewQuery = single(VIEW_QUERY_DEF.get(viewType.ctor)!.filter(elt => elt.name === queryName),
-            `Invalid query name ${queryName}. Not found on ${viewType.ctor}.`);
+    public queryView<V extends object>(view: ViewProxy<V>, queryName: string): ResultSet<V> {
+        const mapper = new ConditionMapper();
+        const defaultPathGenerator = this.entityManager.config.pathGenerator;
 
-        view.parseKeys(this.entityManager.config.pathGenerator, viewQuery.pk, viewQuery.sk);
+        const viewProxy = view;
+        const viewType = viewProxy.viewType;
+        const viewQuery = viewProxy.getViewQuery(queryName);
 
-        const queryInput: DynamoDB.QueryInput = {
-            TableName: this.entityManager.config.tableName,
-            IndexName: viewType.indexName,
-            KeyConditions: {}
-        }
+        // Compile keys into their resp properties.
+        viewProxy.compileKeys(defaultPathGenerator, viewQuery);
 
-        view.forEachId((id, value, valueIsSet) => {
-            if (valueIsSet) {
-                queryInput.KeyConditions![id.name] = {
-                    ComparisonOperator: (id.idType === "PK") ? "EQ" : viewQuery.operation,
-                    AttributeValueList: [req(id.converter.convertTo(value))]
-                }
+        // Extract the keys into a query condition.
+        viewProxy.forEachId((id, value, valueIsSet) => {
+            if (id.idType === "PK") {
+                mapper.eq(id, value)
+            } else if (valueIsSet) {
+                mapper.apply(viewQuery.operation, id, value);
             }
         }, false);
 
-        const data = await this.entityManager.sessionManager.query(queryInput).promise();
+        const queryInput: QueryInput = {indexName: viewType.indexName, record: viewProxy, item: mapper};
 
-        // TODO : Implement optional aggregator.
-        return (data.Items || []).map(elt => this.loadFromDB(viewType, elt));
+        return new ResultSet(queryInput, this.entityManager.transactionManager,
+            (elt) => this.loadFromDB(viewType, elt));
     }
 
     /**
@@ -106,24 +106,24 @@ export class ViewManager {
      * @param loadSource If TRUE the given entity will immediately be loaded into the View. Default is TRUE.
      * @see ViewProxy#loadSource
      */
-    getViewsForSource<E extends object>(entity: E, loadSource: boolean = true): ViewProxy<any>[] {
-        const entityType = EntityManager.internal(entity).entityType;
-        const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType) || [];
-        return entityViewTypes.map(elt => {
-            const view = ViewManager.loadView(elt);
-            if (loadSource) {
-                view.loadSource(entity, false, true, this.entityManager.config.pathGenerator);
-            }
-            return view;
-        });
-    }
+    // getViewsForSource<E extends object>(entity: E, loadSource: boolean = true): ViewProxy<any>[] {
+    //     const entityType = EntityManager.internal(entity).entityType;
+    //     const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType) || [];
+    //     return entityViewTypes.map(elt => {
+    //         const view = ViewManager.loadView(elt);
+    //         if (loadSource) {
+    //             view.loadSource(entity, false, true, this.entityManager.config.pathGenerator);
+    //         }
+    //         return view;
+    //     });
+    // }
 
-    getViewsForSourceType<E extends object>(entityType: EntityType<E>): ViewProxy<any>[] {
-        const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType) || [];
-        return entityViewTypes.map(elt => {
-            return ViewManager.loadView(elt);
-        });
-    }
+    // getViewsForSourceType<E extends object>(entityType: EntityType<E>): ViewProxy<any>[] {
+    //     const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType) || [];
+    //     return entityViewTypes.map(elt => {
+    //         return ViewManager.loadView(elt);
+    //     });
+    // }
 
     /**
      * Loads the View from the Dynamo DB AttributeMap.
@@ -145,11 +145,16 @@ export class ViewManager {
         // to be present for PROJECTED_ALL. Next we load the source into the view.
         if (view.viewType.indexProjections === "PROJECTED_ALL") {
             const entityType = EntityManager.getEntityType(data);
-            const entity = this.entityManager.loadFromDB(entityType, data);
-            if (!view.canLoadSource(entity)) {
-                throw new Error(`Unable to load entity ${entity.entityType.def.name} as a source on view ${viewType.ctor.name}.`);
+            const viewSource = view.getViewSource(entityType);
+
+            if (typeof viewSource === "undefined") {
+                console.warn(`Entity type ${entityType.def.name} not defined as a source on view ${viewType.ctor.name}.`);
+            } else {
+                const entity = this.entityManager.loadFromDB(entityType, data);
+                if (!view.loadSource(viewSource, entity, false)) {
+                    console.warn(`Unable to load entity ${entity.entityType.def.name} as a source on view ${viewType.ctor.name}.`);
+                }
             }
-            view.loadSource(entity, true, false);
         }
 
         // If only custom attributes are projected, then load in the attributes that are annotated.

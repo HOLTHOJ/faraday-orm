@@ -17,7 +17,26 @@
  */
 
 import {AWSError, DynamoDB} from "aws-sdk";
-import {Request} from "aws-sdk/lib/request";
+import {PromiseResult} from "aws-sdk/lib/request";
+
+/**
+ * REQ_ONLY = logs only the request and timestamps (minimum level)
+ * STATS = logs the request and response stats (e.g. consumed capacity)
+ */
+export type LogLevel = "REQ_ONLY" | "STATS" | "FULL";
+
+/**
+ *
+ */
+export type SessionLog = {
+    timestamp: Date,
+    input: string,
+    getItemOutput?: DynamoDB.Types.GetItemOutput,
+    putItemOutput?: DynamoDB.PutItemOutput,
+    deleteItemOutput?: DynamoDB.DeleteItemOutput,
+    queryOutput?: DynamoDB.Types.QueryOutput,
+    error?: any
+}
 
 /**
  * The default session manager that flushes each operation immediately to the DB.
@@ -27,59 +46,111 @@ import {Request} from "aws-sdk/lib/request";
 export class SessionManager {
 
     private readonly db: DynamoDB;
-    public readonly log = new Array<{ timestamp: Date, input: string, capacity?: DynamoDB.ConsumedCapacity }>();
+    private readonly level: LogLevel;
+    public readonly log = new Array<SessionLog>();
 
-    constructor(options?: DynamoDB.Types.ClientConfiguration) {
+    constructor(options?: DynamoDB.Types.ClientConfiguration, level: LogLevel = "STATS") {
+        this.level = level;
         this.db = new DynamoDB(options);
     }
 
-    get lastLog(): { timestamp: Date, input: string, capacity?: DynamoDB.ConsumedCapacity } | undefined {
+    get lastLog(): SessionLog | undefined {
         return (this.log.length > 0) ? this.log[this.log.length - 1] : undefined;
     }
 
-    getItem(params: DynamoDB.Types.GetItemInput): Request<DynamoDB.Types.GetItemOutput, AWSError> {
-        const item = this.db.getItem(params);
-        item.on("success", response => {
-            const capacity = (typeof response.data == "object") ? response.data?.ConsumedCapacity : undefined;
-            this.log.push({timestamp: new Date(), input: JSON.stringify(params), capacity: capacity});
-        });
+    async getItem(params: DynamoDB.Types.GetItemInput): Promise<PromiseResult<DynamoDB.Types.GetItemOutput, AWSError>> {
+        try {
+            if (this.level === "REQ_ONLY") {
+                params.ReturnConsumedCapacity = undefined;
+            } else {
+                params.ReturnConsumedCapacity = "TOTAL";
+            }
 
-        return item;
+            const result = await this.db.getItem(params).promise();
+
+            // remove memory-heavy result data.
+            const {$response, ...logResult} = result;
+            if (this.level !== "FULL") delete logResult.Item;
+            this.log.push(SessionManager.createLog(params, {getItemOutput: logResult}));
+
+            return result;
+        } catch (ex) {
+            this.log.push(SessionManager.createLog(params, {error: ex}));
+            throw ex;
+        }
     }
 
-    putItem(params: DynamoDB.PutItemInput): Request<DynamoDB.PutItemOutput, AWSError> {
-        if (typeof params !== "object") throw new Error(`Unknown operation.`);
+    async putItem(params: DynamoDB.PutItemInput): Promise<PromiseResult<DynamoDB.PutItemOutput, AWSError>> {
+        try {
+            if (this.level === "REQ_ONLY") {
+                params.ReturnConsumedCapacity = undefined;
+                params.ReturnItemCollectionMetrics = undefined;
+            } else {
+                params.ReturnConsumedCapacity = "TOTAL";
+                params.ReturnItemCollectionMetrics = "SIZE";
+            }
 
-        const item = this.db.putItem(params);
-        item.on("success", response => {
-            const capacity = (typeof response.data == "object") ? response.data?.ConsumedCapacity : undefined;
-            this.log.push({timestamp: new Date(), input: JSON.stringify(params), capacity: capacity});
-        });
+            const result = await this.db.putItem(params).promise();
 
-        return item;
+            // remove memory-heavy result data.
+            const {$response, ...logResult} = result;
+            if (this.level !== "FULL") delete logResult.Attributes;
+            this.log.push(SessionManager.createLog(params, {putItemOutput: logResult}));
+
+            return result;
+        } catch (ex) {
+            this.log.push(SessionManager.createLog(params, {error: ex}));
+            throw ex;
+        }
     }
 
-    deleteItem(params: DynamoDB.DeleteItemInput): Request<DynamoDB.DeleteItemOutput, AWSError> {
-        if (typeof params !== "object") throw new Error(`Unknown operation.`);
+    async deleteItem(params: DynamoDB.DeleteItemInput): Promise<PromiseResult<DynamoDB.DeleteItemOutput, AWSError>> {
+        try {
+            if (this.level === "REQ_ONLY") {
+                params.ReturnConsumedCapacity = undefined;
+                params.ReturnItemCollectionMetrics = undefined;
+            } else {
+                params.ReturnConsumedCapacity = "TOTAL";
+                params.ReturnItemCollectionMetrics = "SIZE";
+            }
 
-        const item = this.db.deleteItem(params);
-        item.on("success", response => {
-            const capacity = (typeof response.data == "object") ? response.data?.ConsumedCapacity : undefined;
-            this.log.push({timestamp: new Date(), input: JSON.stringify(params), capacity: capacity});
-        });
+            const result = await this.db.deleteItem(params).promise();
 
-        return item;
+            // remove memory-heavy result data.
+            const {$response, ...logResult} = result;
+            if (this.level !== "FULL") delete logResult.Attributes;
+            this.log.push(SessionManager.createLog(params, {deleteItemOutput: logResult}));
+
+            return result;
+        } catch (ex) {
+            this.log.push(SessionManager.createLog(params, {error: ex}));
+            throw ex;
+        }
     }
 
-    query(params: DynamoDB.Types.QueryInput, callback?: (err: AWSError, data: DynamoDB.Types.QueryOutput) => void): Request<DynamoDB.Types.QueryOutput, AWSError> {
-        if (typeof params !== "object") throw new Error(`Unknown operation.`);
+    async query(params: DynamoDB.Types.QueryInput): Promise<PromiseResult<DynamoDB.Types.QueryOutput, AWSError>> {
+        try {
+            if (this.level === "REQ_ONLY") {
+                params.ReturnConsumedCapacity = undefined;
+            } else {
+                params.ReturnConsumedCapacity = "TOTAL";
+            }
 
-        const item = this.db.query(params);
-        item.on("success", response => {
-            const capacity = (typeof response.data == "object") ? response.data?.ConsumedCapacity : undefined;
-            this.log.push({timestamp: new Date(), input: JSON.stringify(params), capacity: capacity});
-        });
+            const result = await this.db.query(params).promise();
 
-        return item;
+            // remove memory-heavy result data.
+            const {$response, ...logResult} = result;
+            if (this.level !== "FULL") delete logResult.Items;
+            this.log.push(SessionManager.createLog(params, {queryOutput: logResult}));
+
+            return result;
+        } catch (ex) {
+            this.log.push(SessionManager.createLog(params, {error: ex}));
+            throw ex;
+        }
+    }
+
+    private static createLog(params: any, partial: Partial<SessionLog>): SessionLog {
+        return {...partial, timestamp: new Date(), input: JSON.stringify(params)};
     }
 }

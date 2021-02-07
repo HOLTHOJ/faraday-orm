@@ -73,3 +73,31 @@ export function one<T>(val: T[], msg?: string): T | undefined {
     if (val.length > 1) throw new Error(msg || "Array is having too many values.");
     return (val.length === 0) ? undefined : val[0];
 }
+
+/**
+ * Ensures the given list is unique.
+ * @param cols
+ * @param keyExtractor (optional) Function that extracts the unique key from the given list of values.
+ *                     If not provided, the element itself will be used.
+ * @param {boolean} throwIfNotUnique (optional) Determines if a duplicate value throws an exception
+ *                                   or is simply filtered out.
+ * @param msg (option) Error message to throw. Only used if throwIfNotUnique is TRUE.
+ */
+export function unique<T, K>(cols: T[],
+                             keyExtractor: (elt: T) => K = (elt => elt as unknown as K),
+                             throwIfNotUnique: boolean = false,
+                             msg ?: string): T[] {
+    const names = new Set<K>();
+    return cols.filter(elt => {
+        const key = keyExtractor(elt);
+        if (names.has(key)) {
+            if (throwIfNotUnique) {
+                throw new Error(msg || `Duplicate element found: ${key}`)
+            } else {
+                return false;
+            }
+        }
+        names.add(key);
+        return true;
+    });
+}

@@ -17,7 +17,7 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {Converter} from "../../converter/Converter";
+import {Converter} from "../../converter";
 
 /** */
 export type Column<T = any> = { name: string, converter: Converter<T> }

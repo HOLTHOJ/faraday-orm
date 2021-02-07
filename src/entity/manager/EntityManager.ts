@@ -17,17 +17,17 @@
  */
 
 import {AttributeMapper} from "../../util/mapper/AttributeMapper";
-import {StringConverter} from "../../converter/StringConverter";
+import {StringConverter} from "../../converter";
 import {DynamoDB} from "aws-sdk";
 import {def, req} from "../../util/Req";
 import {ENTITY_DEF, ENTITY_REPO, EntityType} from "../annotation/Entity";
 import {EntityProxy} from "./EntityProxy";
 import {createEntityProxy} from "./EntityProxyImpl";
-import {Class} from "../../util/Class";
+import {Class} from "../../util";
 import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
 import {PathToRegexpPathGenerator} from "../../util/PathToRegexpPathGenerator";
 import {PathGenerator} from "../../util/KeyPath";
-import {SessionManager} from "./SessionManager";
+import {LogLevel, SessionManager} from "./SessionManager";
 import {TransactionManager} from "./TransactionManager";
 
 /**
@@ -35,15 +35,26 @@ import {TransactionManager} from "./TransactionManager";
  */
 export type EntityManagerConfig = {
 
-    /** A user name to identify who is making the updates. */
-    userName: string,
+    /** A username to identify who is making the updates. */
+    readonly userName: string,
 
     /** The table name. */
-    tableName: string,
+    readonly tableName: string,
 
-    /** A custom path generator. */
-    pathGenerator: PathGenerator,
+    /** The default path generator for this entity manager. */
+    readonly pathGenerator: PathGenerator,
+
+    readonly logLevel: LogLevel;
+
 };
+
+export class EntityNotFoundException extends Error {
+
+    constructor(entity: string, key: DynamoDB.Types.AttributeMap) {
+        super(`Entity ${entity} not found for key: ${JSON.stringify(key)}.`);
+    }
+
+}
 
 /**
  *
@@ -53,25 +64,35 @@ export class EntityManager {
     /** Global config as a fallback for all Entity manager instances. */
     public static GLOBAL_CONFIG ?: Partial<EntityManagerConfig>;
 
-    /** The technical column that is used to match the db item with the model  */
+    /** The technical column that is used to match the db item with the model. */
     public static TYPE_COLUMN = {name: "$type", converter: StringConverter};
 
-    /**
-     * The config of this entity manager.
-     * This is the actual configuration that is used (it only contains default from GLOBAL_CONFIG).
-     */
+    /** The config for this entity manager. */
     public readonly config: EntityManagerConfig;
 
-    /** The session manager keeps track of all the database calls made by this Entity manager instance. */
-    public readonly sessionManager: SessionManager;
+    /**
+     * The session keeps track of all the database calls made by this Entity manager instance.
+     * The session is mapped one-to-one with the Entity manager instance.
+     *
+     * @quote Hibernate (documentation/src/main/asciidoc/userguide/chapters/architecture/Architecture.adoc)
+     *        "In JPA nomenclature, the Session is represented by an EntityManager."
+     * */
+    public readonly session: SessionManager;
+
+    /**
+     *
+     */
+    public readonly transactionManager: TransactionManager;
 
     private constructor(config?: Partial<EntityManagerConfig>) {
         this.config = {
+            logLevel: req(config?.logLevel || EntityManager.GLOBAL_CONFIG?.logLevel || "STATS", `Missing logLevel in config.`),
             userName: req(config?.userName || EntityManager.GLOBAL_CONFIG?.userName, `Missing user name in config.`),
             tableName: req(config?.tableName || EntityManager.GLOBAL_CONFIG?.tableName, `Missing table name in config.`),
             pathGenerator: def(config?.pathGenerator || EntityManager.GLOBAL_CONFIG?.pathGenerator, new PathToRegexpPathGenerator()),
         }
-        this.sessionManager = new SessionManager();
+        this.session = new SessionManager(undefined, this.config.logLevel);
+        this.transactionManager = new TransactionManager(this.session, this.config);
     }
 
     public static get(config?: Partial<EntityManagerConfig>): EntityManager {
@@ -94,7 +115,7 @@ export class EntityManager {
      *
      * @return A new entity instance containing the database values.
      */
-    public getItem<E extends object>(entity: E): Promise<E> {
+    public async getItem<E extends object>(entity: E): Promise<E> {
         const key = new AttributeMapper();
         const record = EntityManager.internal(entity);
 
@@ -106,24 +127,28 @@ export class EntityManager {
             key.setValue(id, value);
         }, true);
 
-        return TransactionManager.getItem(this, record, key);
+        const result = await this.transactionManager.getItem({record, key});
+        if (typeof result.Item !== "undefined") {
+            return this.loadFromDB(record.entityType, result.Item);
+        } else {
+            throw new EntityNotFoundException(record.entityType.def.name, key.toMap())
+        }
     }
 
     /**
      * Creates the given entity in the database.
-     *
      * This is an exclusive create function and will fail if the item already exists.
      *
      * @param entity The entity to create.
      *
-     * @throws Error if the item already exists.
-     * @throws Error if an internal field is set.
-     * @throws Error if a required Id is not set.
-     * @throws Error if a required Column is not set.
+     * @throws Error if the item already exists in the database.
+     * @throws Error if an internal field is set (internal fields can only be set by callbacks).
+     * @throws Error if a required Id is not set (this is evaluated after callbacks and path compilation).
+     * @throws Error if a required Column is not set (this is evaluated after callbacks and path compilation).
      *
      * @return A new entity instance containing the database values.
      */
-    public createItem<E extends object>(entity: E): Promise<E> {
+    public async createItem<E extends object>(entity: E): Promise<E> {
         const item = new AttributeMapper();
         const expected = new ExpectedMapper();
         const record = EntityManager.internal(entity);
@@ -142,7 +167,7 @@ export class EntityManager {
             }
         }, false);
 
-        // Call callbacks before extracting the columns.
+        // Execute callbacks before extracting the columns.
         record.executeCallbacks("INSERT", this.config)
 
         // Compile the key paths into their id columns.
@@ -150,7 +175,7 @@ export class EntityManager {
 
         // Extract the ID columns into the DB request.
         record.forEachId((id, value) => {
-            expected.setExists2(id.name, false);
+            expected.setExists(id, false);
             item.setValue(id, value);
         }, true);
 
@@ -163,7 +188,8 @@ export class EntityManager {
         // Set the $type column
         item.setValue(EntityManager.TYPE_COLUMN, record.entityType.def.name);
 
-        return TransactionManager.putItem(this, record, item, expected);
+        await this.transactionManager.putItem(record, item, expected);
+        return this.loadFromDB(record.entityType, item.toMap());
     }
 
     /**
@@ -201,7 +227,8 @@ export class EntityManager {
             key.setValue(id, value);
         }, true);
 
-        return TransactionManager.deleteItem(this, record, key, expected);
+        return this.transactionManager.deleteItem(record, key, expected)
+            .then(data => this.loadFromDB(record.entityType, req(data.Attributes)));
     }
 
     /**
@@ -265,7 +292,8 @@ export class EntityManager {
         // Set the $type column
         item.setValue(EntityManager.TYPE_COLUMN, record.entityType.def.name);
 
-        return TransactionManager.updateItem(this, record, item, exp);
+        return this.transactionManager.updateItem(record, item, exp)
+            .then(() => this.loadFromDB(record.entityType, item.toMap()));
     }
 
     /**
