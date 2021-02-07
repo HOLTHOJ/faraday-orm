@@ -22,15 +22,16 @@ import {UNDEFINED} from "../../util";
 import {Versionable} from "./Versionable";
 import {EntityManagerConfig} from "../manager/EntityManager";
 
+/** */
+export type VersionableOptions = VersionableOptions & {}
+
 /**
- * An editable DB record.
+ * An editable record.
  *
- * Editable records always have;
- * - createTime
- * - updateTime
- * - createUser
- * - updateUser
- * fields to enable tracing of edits.
+ * When a record is editable we usually want to track who and when the record was created and by who and when it was
+ * last edited. This model class provides the necessary fields to track this information, and it also takes care of
+ * setting and updating these fields using a @Callback. The create user and update user are retrieved from the
+ * EntityManager performing the insert or update.
  */
 export abstract class Editable extends Versionable {
 
@@ -45,6 +46,10 @@ export abstract class Editable extends Versionable {
 
     @Internal("$uu", StringConverter, true)
     public _updateUser: string = UNDEFINED;
+
+    protected constructor(options ?: VersionableOptions) {
+        super(options);
+    }
 
     @Callback()
     updateEditableInternalFields(operation: CallbackOperation, config: EntityManagerConfig): void {

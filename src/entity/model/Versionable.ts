@@ -19,14 +19,43 @@
 import {Callback, CallbackOperation, Internal} from "..";
 import {UNDEFINED} from "../../util";
 import {NumberConverter} from "../../converter";
-import {Keyable} from "./Keyable";
+import {Keyable, KeyableOptions} from "./Keyable";
+import {def} from "../../util/Req";
+
+/** */
+export type VersionableOptions = KeyableOptions & {
+
+    /** The version number to use for new records. */
+    versionNew?: number,
+
+    /** The increment for updated records. */
+    versionIncrement?: number,
+
+};
 
 /**
- * An versionable DB record.
+ * An versionable record.
  *
- * Versionable records always have a version field the enable optimistic locking at DB level.
+ * Versionable records always have a version field the enable optimistic locking at database level. This model class
+ * takes care of setting the initial version number for INSERT operations, as well as incrementing the version number
+ * for UPDATE operations.
+ *
+ * This model class makes use of the @Internal column functionality to enforce optimistic locking. i.e. the _version
+ * column will always be included as an "Expected" parameter in the DynamodDB requests so you can only update a record
+ * if your version matches the one in the database.
+ *
+ * @see Internal
  */
 export abstract class Versionable extends Keyable {
+
+    private readonly versionNew: number;
+    private readonly versionIncrement: number;
+
+    protected constructor(options?: VersionableOptions) {
+        super(options);
+        this.versionNew = def(options?.versionNew, 1);
+        this.versionIncrement = def(options?.versionIncrement, 1);
+    }
 
     @Internal("$v", NumberConverter, true)
     public _version: number = UNDEFINED;
@@ -35,17 +64,17 @@ export abstract class Versionable extends Keyable {
     updateVersion(operation: CallbackOperation): void {
         switch (operation) {
             case "INSERT":
-                this._version = 1;
+                this._version = this.versionNew;
                 break;
             case "UPDATE":
-                this._version += 1;
+                this._version += this.versionIncrement;
                 break;
         }
     }
 
     @Callback()
     validateVersion(action: CallbackOperation) {
-        if (action === "DELETE" && (Number.isNaN(Number(this._version)) || Number(this._version) < 1)) {
+        if (action === "DELETE" && (Number.isNaN(Number(this._version)) || Number(this._version) < this.versionNew)) {
             throw new Error(`Require a version.`);
         }
     }

@@ -18,11 +18,25 @@
 
 import {Callback, CallbackOperation} from "..";
 import {UNDEFINED} from "../../util";
+import {def} from "../../util/Req";
+
+/** */
+export type KeyGenerator = () => string;
+
+/** */
+export type KeyableOptions = {
+
+    /** The key generator. */
+    generator?: KeyGenerator
+};
+
+/** */
+export const DEFAULT_KEY_GENERATOR = () => Keyable.generateUUID();
 
 /**
- * A keyable DB record.
+ * A keyable record.
  *
- * All entities need to have an id in order for it to be retrievable and updateable.
+ * All records need to have an id in order for it to be retrievable and updateable.
  * But because every DynamoDB database can have a different PK/SK configuration,
  * we cannot provide a generic way to represent this ID.
  *
@@ -31,16 +45,35 @@ import {UNDEFINED} from "../../util";
  *
  * The generated Id will start with a Time-based component which provides a natural ordering if it used as SK.
  * The default Id generator function can be overridden by providing a custom generator in the constructor.
+ *
+ * Example of using the ID in a record;
+ * <pre>
+ *     @Entity("Article", {pkPath: ":account/article", skPath: ":_id"})
+ *     export class DBArticle extends Keyable {}
+ * </pre>
+ *
+ * Example of using the ID as a composite key;
+ * <pre>
+ *     @Entity("Article", {pkPath: ":account/news", skPath: "article/:_id"})
+ *     export class DBArticle extends Keyable {}
+ *
+ *     @Entity("Blog", {pkPath: ":account/news", skPath: "blog/:_id"})
+ *     export class DBBlog extends Keyable {}
+ * </pre>
+ *
  */
 export abstract class Keyable {
 
-    /** The unique internal id of this record. */
+    /**
+     * The unique internal id of this record.
+     * This field is not by default included in the database record.
+     */
     public _id: string = UNDEFINED;
 
-    private readonly _generator: () => string;
+    private readonly _generator: KeyGenerator;
 
-    public constructor(generator?: () => string) {
-        this._generator = generator || (() => Keyable.generateUUID());
+    protected constructor(options?: KeyableOptions) {
+        this._generator = def(options?.generator, DEFAULT_KEY_GENERATOR);
     }
 
     @Callback()
@@ -50,6 +83,11 @@ export abstract class Keyable {
         }
     }
 
+    /**
+     * Generates a near-perfect UUID composed of a time component and a random string.
+     *
+     * @return {string}
+     */
     public static generateUUID(): string {
         return new Date().getTime().toString(36) + Math.random().toString(36).substr(2, 9);
     }
