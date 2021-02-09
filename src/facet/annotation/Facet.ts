@@ -22,7 +22,7 @@ import {Class} from "../../util";
 import {single} from "../../util/Req";
 import {FACET_IDS, FacetIdDef} from "./FacetId";
 
-/** The query operation */
+/** The facet query operation */
 export type FacetQueryOperation = DynamoDB.ComparisonOperator;
 
 /** @internal Repository of all facets and the constructor function on which they are defined. */
@@ -32,7 +32,7 @@ export const FACET_REPO = new Map<Function, Array<Readonly<FacetType>>>();
  * The default index. This will query the table's PK & SK without an index.
  * @type {typeof DEFAULT}
  */
-export const DEFAULT: unique symbol = Symbol("");
+export const DEFAULT: unique symbol = Symbol("default-index");
 
 /** The full facet type details. */
 export type FacetType<F extends object = any> = {
@@ -81,7 +81,7 @@ export function Facet(index: string | typeof DEFAULT, queryName: string, operati
             }
 
             facetType.lsi = single(ids.filter(elt => elt.indexName === index),
-                `Illegal SK Id Column configuration.`);
+                `Illegal SK Id Column configuration.`, true);
         }
 
         if (FACET_REPO.has(ctor)) {

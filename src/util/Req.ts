@@ -47,14 +47,21 @@ export function def<T>(val: T | undefined | null, def: T): T {
  *
  * @param arr
  * @param msg
+ * @param prepend
  * @throws Error if the array is undefined or null.
  * @throws Error if the array does not contain exactly one item.
  */
-export function single<T>(arr: T[], msg?: string): T {
-    if (typeof arr === "undefined") throw new Error(msg || "Missing required value.");
-    if (arr === null) throw new Error(msg || "Missing required value.");
-    if (arr.length < 1) throw new Error(msg || "Array is missing value.");
-    if (arr.length > 1) throw new Error(msg || "Array is having too many values.");
+export function single<T>(arr: T[], msg?: string, prepend ?: boolean): T {
+    const NOT_ARRAY = "Value is not an array";
+    const NULL_VALUE = "Missing required value";
+    const MISSING_VALUE = "Array is missing a value";
+    const TOO_MANY_VALUES = "Array is having too many values";
+
+    if (typeof arr === "undefined") throw new Error(def(msg, NOT_ARRAY + ".") + ((prepend) ? ` (${NOT_ARRAY}).` : ""));
+    if (!Array.isArray(arr)) throw new Error(def(msg, NOT_ARRAY + ".") + ((prepend) ? ` (${NOT_ARRAY}).` : ""));
+    if (arr === null) throw new Error(def(msg, NULL_VALUE + ".") + ((prepend) ? ` (${NULL_VALUE}).` : ""));
+    if (arr.length < 1) throw new Error(def(msg, MISSING_VALUE + ".") + ((prepend) ? ` (${MISSING_VALUE}).` : ""));
+    if (arr.length > 1) throw new Error(def(msg, TOO_MANY_VALUES + ".") + ((prepend) ? ` (${TOO_MANY_VALUES}).` : ""));
     return arr[0];
 }
 

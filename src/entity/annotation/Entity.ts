@@ -40,7 +40,7 @@ export const ENTITY_DEF = new Map<Function, EntityType>();
 export const ENTITY_REPO = new Map<string, EntityType>();
 
 /** The full entity type details. */
-export type EntityType<E extends object = {}> = {
+export type EntityType<E extends object = any> = {
 
     /** The entity class definition. */
     readonly def: EntityDef<E>,

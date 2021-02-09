@@ -72,7 +72,7 @@ export abstract class Keyable {
 
     private readonly _generator: KeyGenerator;
 
-    protected constructor(options?: KeyableOptions) {
+    constructor(options?: KeyableOptions) {
         this._generator = def(options?.generator, DEFAULT_KEY_GENERATOR);
     }
 

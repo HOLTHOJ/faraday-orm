@@ -38,9 +38,9 @@ describe("test/filesystem", () => {
         view.account = "acme";
         view.directory = "root";
 
-        const views = await viewManager.queryView(view, "listAll");
-        console.log("Views", views.length, JSON.stringify(views));
-        console.log("Capacity", entityManager.session.lastLog?.capacity);
+        const views = viewManager.queryView(view, "listAll");
+        console.log("Views", await views.hasElements(), JSON.stringify(await views.toArray()));
+        console.log("Capacity", entityManager.session.lastLog?.queryOutput?.ConsumedCapacity);
     })
 
     test("view/folder", async () => {
@@ -51,9 +51,9 @@ describe("test/filesystem", () => {
         view.account = "acme";
         view.directory = "root";
 
-        const views = await viewManager.queryView(view, "listAll");
-        console.log("Views", views.length, JSON.stringify(views));
-        console.log("Capacity", entityManager.session.lastLog?.capacity);
+        const views = viewManager.queryView(view, "listAll");
+        console.log("Views", await views.hasElements(), JSON.stringify(await views.toArray()));
+        console.log("Capacity", entityManager.session.lastLog?.queryOutput?.ConsumedCapacity);
     })
 
     test("view/explorer/name/all", async () => {
@@ -64,9 +64,9 @@ describe("test/filesystem", () => {
         view.account = "acme";
         view.directory = "root";
 
-        const views = await viewManager.queryView(view, "list-all");
-        console.log("Views", views.length, JSON.stringify(views));
-        console.log("Capacity", entityManager.session.lastLog?.capacity);
+        const views = viewManager.queryView(view, "list-all");
+        console.log("Views", await views.hasElements(), JSON.stringify(await views.toArray()));
+        console.log("Capacity", entityManager.session.lastLog?.queryOutput?.ConsumedCapacity);
     })
 
     test("view/explorer/name?test-file", async () => {
@@ -78,9 +78,9 @@ describe("test/filesystem", () => {
         view.directory = "root";
         view.name = "test-file";
 
-        const views = await viewManager.queryView(view, "listAll");
-        console.log("Views", views.length, JSON.stringify(views));
-        console.log("Capacity", entityManager.session.lastLog?.capacity);
+        const views = viewManager.queryView(view, "list-all");
+        console.log("Views", await views.hasElements(), JSON.stringify(await views.toArray()));
+        console.log("Capacity", entityManager.session.lastLog?.queryOutput?.ConsumedCapacity);
     })
 
 
@@ -92,9 +92,9 @@ describe("test/filesystem", () => {
         view.account = "acme";
         view.directory = "root";
 
-        const views = await viewManager.queryView(view, "list-all");
-        console.log("Views", views.length, JSON.stringify(views));
-        console.log("Capacity", entityManager.session.lastLog?.capacity);
+        const views = viewManager.queryView(view, "list-all");
+        console.log("Views", await views.hasElements(), JSON.stringify(await views.toArray()));
+        console.log("Capacity", entityManager.session.lastLog?.queryOutput?.ConsumedCapacity);
     })
 
 })

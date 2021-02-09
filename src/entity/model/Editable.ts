@@ -19,11 +19,11 @@
 import {Callback, CallbackOperation, Internal} from "..";
 import {DateNumberConverter, StringConverter} from "../../converter";
 import {UNDEFINED} from "../../util";
-import {Versionable} from "./Versionable";
+import {Versionable, VersionableOptions} from "./Versionable";
 import {EntityManagerConfig} from "../manager/EntityManager";
 
 /** */
-export type VersionableOptions = VersionableOptions & {}
+export type EditableOptions = VersionableOptions & {}
 
 /**
  * An editable record.
@@ -47,7 +47,7 @@ export abstract class Editable extends Versionable {
     @Internal("$uu", StringConverter, true)
     public _updateUser: string = UNDEFINED;
 
-    protected constructor(options ?: VersionableOptions) {
+    constructor(options ?: EditableOptions) {
         super(options);
     }
 

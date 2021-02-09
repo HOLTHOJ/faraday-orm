@@ -23,7 +23,7 @@ export class ResultSet<T extends object> implements AsyncIterable<T> {
 
     /**
      * Returns if this result set contains any items.
-     * 
+     *
      * @return {Promise<boolean>}
      */
     async hasElements(): Promise<boolean> {
@@ -66,8 +66,10 @@ export class ResultSet<T extends object> implements AsyncIterable<T> {
 
             result = await this._tx.query(query);
 
-            if (typeof result.Count !== undefined && Number(result.Count) > 0)
-                yield * result.Items!.map(elt => this._loader(elt));
+            if (typeof result.Count !== undefined && Number(result.Count) > 0) {
+                yield* result.Items!.map(elt => this._loader(elt));
+            }
+
         } while (result.LastEvaluatedKey);
 
         return {done: true};

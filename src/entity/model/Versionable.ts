@@ -51,7 +51,7 @@ export abstract class Versionable extends Keyable {
     private readonly versionNew: number;
     private readonly versionIncrement: number;
 
-    protected constructor(options?: VersionableOptions) {
+    constructor(options?: VersionableOptions) {
         super(options);
         this.versionNew = def(options?.versionNew, 1);
         this.versionIncrement = def(options?.versionIncrement, 1);

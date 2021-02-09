@@ -44,26 +44,6 @@ export class ViewManager {
     }
 
     /**
-     *
-     * @return {EntityType<E>}
-     * @param view
-     */
-    static getViewType<V extends object>(view: Class<V> | Function): ViewType<V> {
-        return req(VIEW_DEF.get(view) as ViewType<V>, `Class ${view.name} is not a View class.`);
-    }
-
-    /**
-     * Creates a new View Proxy instance for the given View class.
-     *
-     * @param viewType The view class constructor or view type.
-     * @throws Error If the given class is not a View class.
-     */
-    static loadView<V extends object>(viewType: ViewType<V> | Class<V> | Function): ViewProxy<V> {
-        const type = (typeof viewType === "function") ? this.getViewType(viewType) : viewType;
-        return new (createViewProxy(type))() as ViewProxy<V>;
-    }
-
-    /**
      * Queries the View. The query name is used to lookup the correct @ViewQuery configuration
      * which defines the PK and SK paths to use. The View instance itself contains the values to use in the query
      * paths.
@@ -71,11 +51,11 @@ export class ViewManager {
      * @param view The View instance that from which the values that are needed to generate the query will be read.
      * @param queryName The name of the query needed to lookup the correct @ViewQuery annotation.
      */
-    public queryView<V extends object>(view: ViewProxy<V>, queryName: string): ResultSet<V> {
+    public queryView<V extends object>(view: V, queryName: string): ResultSet<V> {
         const mapper = new ConditionMapper();
         const defaultPathGenerator = this.entityManager.config.pathGenerator;
 
-        const viewProxy = view;
+        const viewProxy = ViewManager.internal(view);
         const viewType = viewProxy.viewType;
         const viewQuery = viewProxy.getViewQuery(queryName);
 
@@ -166,5 +146,56 @@ export class ViewManager {
 
         return view;
     }
+
+    /**
+     *
+     * @return {EntityType<E>}
+     * @param view
+     */
+    static getViewType<V extends object>(view: Class<V> | Function): ViewType<V> {
+        return req(VIEW_DEF.get(view) as ViewType<V>, `Class ${view} is not a View class.`);
+    }
+
+    /**
+     * Creates a new View Proxy instance for the given View class.
+     *
+     * @param viewType The view class constructor or view type.
+     * @throws Error If the given class is not a View class.
+     */
+    static loadView<V extends object>(viewType: ViewType<V> | Class<V> | Function): ViewProxy<V> {
+        const type = (typeof viewType === "function") ? this.getViewType(viewType) : viewType;
+        return new (createViewProxy(type))() as ViewProxy<V>;
+    }
+
+    /**
+     * Tests if the given view is a managed view.
+     * A managed view is a view that is first loaded by the View Manager,
+     * and is enhanced with some additional technical methods needed by the View Manager.
+     *
+     * @param view The view instance to test.
+     *
+     * @see ViewManager#load
+     * @return The same view type-casted as View Proxy if managed.
+     */
+    public static isManaged<E extends object>(view: E | ViewProxy<E>): view is ViewProxy<E> {
+        return typeof (view as ViewProxy<E>).viewType !== "undefined";
+    }
+
+    /**
+     * Casts the given view to a managed view, if the view instance is actually managed.
+     *
+     * @param view The view instance to cast.
+     *
+     * @throws Error if the given view instance is not a managed instance.
+     *
+     * @see ViewManager#load
+     * @see ViewManager#isManaged
+     * @return The same view type-casted as Entity Proxy if managed.
+     */
+    public static internal<X extends object>(view: X): ViewProxy<X> {
+        if (this.isManaged(view)) return view;
+        throw new Error(`View ${view.constructor} is not a managed view. Load it in the view manager first.`);
+    }
+
 
 }

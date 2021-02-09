@@ -41,7 +41,7 @@ import {FACET_REPO, FacetType} from "../../facet/annotation/Facet";
  *
  *  NOTE: Subject to change in the future.
  */
-export function createEntityProxy(entityType: EntityType): { new(): EntityProxy } {
+export function createEntityProxy(entityType: EntityType<{}>): { new(): EntityProxy } {
 
     const newCtor = class extends entityType.def.ctor implements EntityProxyMethods {
 
@@ -144,7 +144,7 @@ export function createEntityProxy(entityType: EntityType): { new(): EntityProxy 
         }
 
         public toJSON(key ?: string): object {
-            let json: object = {}
+            let json: any = {}
             if (this.entityType.toJSON) {
                 json = this.entityType.toJSON.value.call(this, key);
             } else {

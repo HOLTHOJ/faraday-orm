@@ -28,14 +28,11 @@ const Facets = {
     mimeType: {name: "mimetype-facet", index: "lsi2-index"},
 }
 
-@Facet(Facets.size.name, [
-    {name: DBFile.QUERY.ORDER_BY_SIZE, operation: "BEGINS_WITH", path: "file/"},
-    {name: DBFile.QUERY.ORDER_BY_SIZE_NAME, operation: "BEGINS_WITH", path: "file/:size/"},
-])
-@Facet(Facets.mimeType.name, [
-    {name: DBFile.QUERY.ORDER_BY_MIME_TYPE, operation: "BEGINS_WITH", path: "file/"},
-    {name: DBFile.QUERY.FILTER_BY_MIME_TYPE, operation: "EQ", path: "file/:mimeType"}
-])
+@Facet(Facets.size.index, DBFile.QUERY.ORDER_BY_SIZE, "BEGINS_WITH", "file/")
+@Facet(Facets.size.index, DBFile.QUERY.ORDER_BY_SIZE_NAME, "BEGINS_WITH", "file/:size/")
+@Facet(Facets.mimeType.index, DBFile.QUERY.ORDER_BY_MIME_TYPE, "BEGINS_WITH", "file/")
+@Facet(Facets.mimeType.index, DBFile.QUERY.FILTER_BY_MIME_TYPE, "EQ", "file/:mimeType")
+
 @Entity("file", {pkPath: ":account/:directory", skPath: "file/:fileName"})
 export class DBFile extends Editable {
 

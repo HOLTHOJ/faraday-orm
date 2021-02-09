@@ -44,7 +44,7 @@ export class FacetManager {
         return new FacetManager(entityManager);
     }
 
-    public query<F extends object>(entity: F /*| EntityProxy<F>[]*/, queryName?: string): ResultSet<F> {
+    public query<F extends object>(entity: F, queryName?: string): ResultSet<F> {
         const mapper = new ConditionMapper();
         const defaultPathGenerator = this.entityManager.config.pathGenerator;
 
