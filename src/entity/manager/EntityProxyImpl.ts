@@ -26,6 +26,20 @@ import {FACET_REPO, FacetType} from "../../facet/annotation/Facet";
 
 /**
  * @internal Implementation of the EntityProxyMethods.
+ *
+ * Currently there is no clear need to create a subclass and force the user to first load the entity before
+ * being able to use it. But this is already part of a preliminary architecture where we will need to override
+ * the default functions on an object;
+ *  - toJSON needs to export the entity type (if enabled).
+ *  - toJSON needs to include delegate entities on the same level
+ *  - resolve/lazy-load references
+ *  - ...
+ *
+ * Currently the user is required to create the proxy before populating any properties,
+ * this could be perceived as cumbersome; maybe we should only wrap it into a proxy
+ * for entities that are managed (returned) by the entity manager ?
+ *
+ *  NOTE: Subject to change in the future.
  */
 export function createEntityProxy(entityType: EntityType): { new(): EntityProxy } {
 
@@ -130,19 +144,18 @@ export function createEntityProxy(entityType: EntityType): { new(): EntityProxy 
         }
 
         public toJSON(key ?: string): object {
+            let json: object = {}
             if (this.entityType.toJSON) {
-                return this.entityType.toJSON.value.call(this, key);
+                json = this.entityType.toJSON.value.call(this, key);
+            } else {
+                json = this;
             }
 
-            return this;
+            if (this.entityType.def.options.exportTypeName) {
+                json["_type"] = this.entityType.def.name;
+            }
 
-            // const exposed = ExposedUtil.getAllExposedProps(this.entityType.def.ctor);
-            // return exposed?.reduce((obj, elt) => {
-            //     const value = this.getValue(elt.propName);
-            //     obj[elt.name] = (typeof value !== "undefined" && elt.converter)
-            //         ? elt.converter.toPrimitive(value) : value;
-            //     return obj;
-            // }, {} as any)
+            return json;
         }
     }
 

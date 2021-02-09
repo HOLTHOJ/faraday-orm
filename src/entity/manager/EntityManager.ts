@@ -353,8 +353,8 @@ export class EntityManager {
      * @see EntityManager#load
      * @return The same entity type-casted as Entity Proxy if managed.
      */
-    public static isManaged<E extends object>(entity: E): entity is EntityProxy<E> {
-        return (entity as EntityProxy<E>).entityType !== undefined;
+    public static isManaged<E extends object>(entity: E | EntityProxy<E>): entity is EntityProxy<E> {
+        return typeof (entity as EntityProxy<E>).entityType !== "undefined";
     }
 
     /**

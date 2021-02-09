@@ -25,7 +25,7 @@ import {FacetType} from "../../facet/annotation/Facet";
 export type EntityProxy<E extends object = any> = E & EntityProxyMethods<E>;
 
 /** Methods that are added to a model class when it is managed. */
-export type EntityProxyMethods<E extends object = any> = {
+export interface EntityProxyMethods<E extends object = any> {
 
     /** The entity type configuration. */
     readonly entityType: EntityType<E>;

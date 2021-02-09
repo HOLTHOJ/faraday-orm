@@ -20,11 +20,18 @@ import {ENTITY_IDS, IdColumnDef} from "./Id";
 import {ColumnDef, ENTITY_COLS} from "./Column";
 import {CallbackDef, ENTITY_CALLBACKS} from "./Callback";
 import {Class} from "../../util";
-import {one, single, unique} from "../../util/Req";
+import {def, one, single, unique} from "../../util/Req";
 import {KeyPath} from "../../util/KeyPath";
 
 /** The entity annotation definition. */
-export type EntityDef<E extends object = any> = { ctor: Class<E>, name: string, generateStats: boolean };
+export type EntityDef<E extends object = {}> = {
+    ctor: Class<E>,
+    name: string,
+    options: {
+        exportTypeName: boolean,
+        generateStats: boolean
+    }
+};
 
 /** @internal Repository of all entities and the constructor function on which they are defined. */
 export const ENTITY_DEF = new Map<Function, EntityType>();
@@ -33,7 +40,7 @@ export const ENTITY_DEF = new Map<Function, EntityType>();
 export const ENTITY_REPO = new Map<string, EntityType>();
 
 /** The full entity type details. */
-export type EntityType<E extends object = any> = {
+export type EntityType<E extends object = {}> = {
 
     /** The entity class definition. */
     readonly def: EntityDef<E>,
@@ -63,15 +70,34 @@ export type EntityType<E extends object = any> = {
 };
 
 /**
+ * Additional options for the @Entity configuration.
+ */
+export type EntityOptions = {
+
+    /**
+     * If TRUE then the entity type name will be exported in the toJSON() method. Defaults to TRUE.
+     */
+    exportTypeName?: boolean,
+
+    /**
+     * (Experimental) If TRUE then a "stats" record will be updated in the database. A stats record keeps track of the
+     * number of items each query has. The DynamoDB stream for stats will also need to be enabled for this feature.
+     *
+     * Defaults to TRUE.
+     */
+    generateStats?: boolean,
+}
+
+/**
  * Registers this class as a DynamoDB Entity. Entities can be saved and retrieved from the DB.
  *
- * @param typeName      The type name of this entity. This is needed to match the DB row with its correct entity.
- * @param keyPath       The key paths that will be compiled/parsed into/from their resp. Id columns.
- * @param generateStats If TRUE stats will be generated for this entity (if the trigger is enabled). Default is TRUE.
+ * @param typeName The type name of this entity. This is needed to match the DB row with its correct entity.
+ * @param keyPath  The key paths that will be compiled/parsed into/from their resp. Id columns.
+ * @param options  Additional options.
  *
  * @throws Error if the given type name is already registered.
  */
-export function Entity(typeName: string, keyPath ?: KeyPath, generateStats: boolean = true): (ctor: Class) => void {
+export function Entity<E extends object>(typeName: string, keyPath ?: KeyPath, options?: EntityOptions): (ctor: Class<E>) => void {
     return (ctor) => {
 
         if (ENTITY_REPO.has(typeName)) throw new Error(`Duplicate entity type ${typeName}.`);
@@ -98,7 +124,15 @@ export function Entity(typeName: string, keyPath ?: KeyPath, generateStats: bool
             proto = Object.getPrototypeOf(proto);
         }
 
-        const entityDef: EntityDef = {ctor: ctor, name: typeName, generateStats: generateStats};
+        const entityDef: EntityDef = {
+            ctor: ctor,
+            name: typeName,
+            options: {
+                generateStats: def(options?.generateStats, true),
+                exportTypeName: def(options?.exportTypeName, true),
+            }
+        };
+
         const entityType: EntityType = {
             def: entityDef,
             cols: unique(cols, col => col.name, true, `Duplicate column names not allowed.`),

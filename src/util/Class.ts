@@ -19,4 +19,4 @@
 /**
  * A class constructor. Is used in Js as the 'class reference'.
  */
-export type Class<E extends object = any> = { new(): E };
+export type Class<E extends object = {}> = { new(): E };
