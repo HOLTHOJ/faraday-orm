@@ -1,11 +1,11 @@
 # Faraday-orm
-DynamoDB is a noSQL database, which means its data consists of "documents". 
-Documents do not have a strongly defined structure, and apart from the indexable columns, 
-no other columns are defined at database level.
 
-The Faraday-ORM project makes use of Typescript classes and decorators to create strongly typed models 
-that represent the data stored in the DynamoDB noSQL database. 
-This allows the developers to validate that the data stored and retrieved is consistent with the desired datamodel.
+DynamoDB is a noSQL database, which means its data consists of "documents". Documents do not have a strongly defined
+structure, and apart from the indexable columns, no other columns are defined at database level.
+
+The Faraday-ORM project makes use of Typescript classes and decorators to create strongly typed models that represent
+the data stored in the DynamoDB noSQL database. This allows the developers to validate that the data stored and
+retrieved is consistent with the desired datamodel.
 
 * [Entity datamodel](#entity-datamodel)
 * [Entity manager](#entity-manager)
@@ -17,46 +17,50 @@ This allows the developers to validate that the data stored and retrieved is con
 
 Full documentation : [here](src/entity#entity-datamodel)
 
-**Entities** are the items that are stored in the database. 
-They are represented by a plain old javascript class and a Typescript annotation (decorator).
-The Entity name parameter is stored in each item and allows the framework 
-to identify which model the items needs to be loaded into.
+**Entities** are the items that are stored in the database. They are represented by a plain old javascript class and a
+Typescript annotation (decorator). The Entity name parameter is stored in each item and allows the framework to identify
+which model the items needs to be loaded into.
 
-Entities are required to have an **Id**, so the items can be stored and retrieved.
-Having exactly one PK (partition key) is required, defining a SK (sort key) is optional and depends on your database setup.
+Entities are required to have an **Id**, so the items can be stored and retrieved. Having exactly one PK (partition key)
+is required, defining a SK (sort key) is optional and depends on your database setup.
 
-**Columns** represent the attributes that are stored and retrieved from the DB. 
-A column is defined by its database name and converter. 
-Converters are used instead of the DynamoDB.DocumentClient API to allow greater control over 
-the conversion between datamodel values and their DynamoDB Attribute values.
+**Columns** represent the attributes that are stored and retrieved from the DB. A column is defined by its database name
+and converter. Converters are used instead of the DynamoDB.DocumentClient API to allow greater control over the
+conversion between datamodel values and their DynamoDB Attribute values.
 
-**Internal** columns are fields that can only be updated internally using a Callback.
-This means that client applications ARE allowed to set this value directly when PUTTING or UPDATING an item,
-but its value can never differ from the value already existing in the DB. 
-This ensures that client applications have not modified this field between consecutive GET and PUT requests.
+**Internal** columns are fields that can only be updated internally using a Callback. This means that client
+applications ARE allowed to set this value directly when PUTTING or UPDATING an item, but its value can never differ
+from the value already existing in the DB. This ensures that client applications have not modified this field between
+consecutive GET and PUT requests.
 
-**Callbacks** are functions that are called during the process of retrieving or updating an item.
-They can modify internal and non-internal fields of the entity.
+**Callbacks** are functions that are called during the process of retrieving or updating an item. They can modify
+internal and non-internal fields of the entity.
 
-The **UNDEFINED** value is a constant that marks the fields as not initialised yet. 
-This is necessary to differentiate fields that are not set from fields that are deliberatily set to `undefined`.
-It also avoids having to add the `| undefined` union type to each field. 
+The **UNDEFINED** value is a constant that marks the fields as not initialised yet. This is necessary to differentiate
+fields that are not set from fields that are deliberatily set to `undefined`. It also avoids having to add
+the `| undefined` union type to each field.
 
 The full version of this example can be found in the test cases: [DBFile.ts](test/filesystem/model/DBFile.ts).
+
 ```typescript
-@Entity("fs/file", {pkPath: ":account/:directory", skPath: "file/:fileName"})
+@Entity("fs/file", {pkPath: ":account/:directory", skPath: ":fileName"})
 export class DBFile extends Editable {
 
+    @Exposed()
     public account: string = UNDEFINED
 
+    @Exposed()
     public directory: string = UNDEFINED
-    
+
+    @Exposed()
     public fileName: string = UNDEFINED
 
-    @Id("PK", "pk")
+    @Id("PK")
+    @Exposed(false)
     public parent: string = UNDEFINED
 
-    @Id("SK", "sk")
+    @Id("SK")
+    @Exposed(false)    
     public file: string = UNDEFINED
 
     @Column("mimeType", StringConverter)
@@ -67,39 +71,54 @@ export class DBFile extends Editable {
 
 }
 ``` 
-This will result in the following database items.
 
-| pk        | sk              | mimeType          | size |
-| --------- | --------------- | ----------------- | ---- |
-| acme/root | file/dog.png    | image/png         | 1286 |
-| acme/root | file/cat.png    | image/png         | 8676 |
-| acme/root | file/pets.xls   | application/excel | -1   |
-| acme/root | file/man.pdf    | application/pdf   | -1   |
+This will result in the following database structure. The columns starting with a "_" are columns defined on the
+Editable superclass and are update automatically by the framework.
 
+| pk        | sk              | mimeType          | size | _createTime              | _createUser | _updateTime              | _updateUser | _version |
+| --------- | --------------- | ----------------- | ---- | ------------------------ | ----------- | ------------------------ | ----------- | -------- |
+| acme/root | file/dog.png    | image/png         | 1286 | 2021-08-12T21:49:19.034Z | owner       | 2021-08-12T21:49:19.447Z | owner       | 2        |
+| acme/root | file/cat.png    | image/png         | 8676 | 2021-08-12T22:03:08.653Z | owner       | 2021-08-12T22:03:08.653Z | owner       | 1        |
+| acme/root | file/pets.xls   | application/excel | -1   | 2021-08-12T22:03:24.584Z | owner       | 2021-08-12T22:03:24.584Z | owner       | 1        |
+| acme/root | file/man.pdf    | application/pdf   | -1   | 2021-08-12T22:03:24.999Z | owner       | 2021-08-12T22:03:24.999Z | owner       | 1        |
+
+If we extract the first record and represent it as JSON (JSON.stringify()), it would like this. You can see that we
+deliberately do not expose the actual PK and SK, but instead we expose the decomposed values (account & directory) separately.
+
+```json
+{
+  "account": "acme",
+  "directory": "root",
+  "fileName": "dog.png",
+  "_createTime": "2021-08-12T21:49:19.034Z",
+  "_createUser": "owner",
+  "_updateTime": "2021-08-12T21:49:19.447Z",
+  "_updateUser": "owner",
+  "_version": 2
+}
+```
 
 ## Entity manager
 
 Full documentation : [here](src/entity#entity-manager)
 
-The entity manager provides the database operations to execute on our model entities.
-All operations only work on entity instance that are **loaded** by the EntityManager. 
-That is why it is important to always use EntityManager#load(EntityClass) first.
+The entity manager provides the database operations to execute on our model entities. All operations only work on entity
+instance that are **loaded** by the EntityManager. That is why it is important to always use EntityManager#load(
+EntityClass) first.
 
-The **GetItem** operation uses the Id values of the provided entity instance to lookup the entire entity from the database.
-Before the item is retrieved the PK and SK paths are compiled. 
-This makes it easier to lookup an entity, because the user does not need to be aware of how the Ids are composed.  
+The **GetItem** operation uses the Id values of the provided entity instance to lookup the entire entity from the
+database. Before the item is retrieved the PK and SK paths are compiled. This makes it easier to lookup an entity,
+because the user does not need to be aware of how the Ids are composed.
 
-The **CreateItem** operation creates the provided entity in the database. 
-This is an exclusive create operation, meaning the action will fail if the item already exists.
+The **CreateItem** operation creates the provided entity in the database. This is an exclusive create operation, meaning
+the action will fail if the item already exists.
 
-The **UpdateItem** operation updates the provided entity in the database.
-An optional expected entity of the same type can also be provided.
-All properties from the expected entity are used as DynamoDB expected attribute values.
-This is helpful to enforce state transitions; 
-e.g. you can "close" an item only if the expected status is currently "open".
+The **UpdateItem** operation updates the provided entity in the database. An optional expected entity of the same type
+can also be provided. All properties from the expected entity are used as DynamoDB expected attribute values. This is
+helpful to enforce state transitions; e.g. you can "close" an item only if the expected status is currently "open".
 
-The **DeleteItem** operation deletes the provided entity from the database.
-The optional entity can again be used to validate the current state in the database.
+The **DeleteItem** operation deletes the provided entity from the database. The optional entity can again be used to
+validate the current state in the database.
 
 ```typescript
 const entityManager = EntityManager.get({tableName: "faraday-test"});
@@ -132,22 +151,21 @@ console.log("Capacity", entityManager.sessionManager.lastLog?.capacity);
 ```
 
 ## View datamodel
-**Views** are items that can be retrieved using queries. Views itself cannot be stored in the database.
-They are represented by a plain old javascript class and a Typescript annotation (decorator).
-The view defines the index type and index name (if any) so that the framework knows 
-how to construct the query to retrieve the items.
 
-Technically queries can return any type of item from the database, so this makes if very difficult to create a strongly-typed model for queries.
-Views solve this by defining the underlying **source** entity types that are included in this view.
-Everytime a source entity is updated, the view index columns will be recalculated.
-Everytime a view is queried, all the database items will be loaded in their respective entity model classes.  
+**Views** are items that can be retrieved using queries. Views itself cannot be stored in the database. They are
+represented by a plain old javascript class and a Typescript annotation (decorator). The view defines the index type and
+index name (if any) so that the framework knows how to construct the query to retrieve the items.
 
-**ViewColumns** are the properties that are returned in the reponse to the client.
-You can choose to either send the entire entity, or you can first denormalize the fields from the sources 
-into properties on the view itself, and expose those to create a stable view model. 
+Technically queries can return any type of item from the database, so this makes if very difficult to create a
+strongly-typed model for queries. Views solve this by defining the underlying **source** entity types that are included
+in this view. Everytime a source entity is updated, the view index columns will be recalculated. Everytime a view is
+queried, all the database items will be loaded in their respective entity model classes.
 
-**ViewQueries** are configurations that compose the queries. 
-They define the variable names to use for PK and SK values.
+**ViewColumns** are the properties that are returned in the reponse to the client. You can choose to either send the
+entire entity, or you can first denormalize the fields from the sources into properties on the view itself, and expose
+those to create a stable view model.
+
+**ViewQueries** are configurations that compose the queries. They define the variable names to use for PK and SK values.
 The variable names are evaluates against an instance of this view.
 
 ```typescript
@@ -199,14 +217,17 @@ export class DBExplorerByTypeView {
 ```
 
 ## View manager
+
 ::todo
 
 ## About
-Michael Faraday was one of the founding fathers of the dynamo technology, 
-and he is back to help out once again making the AWS DynamoDB (https://aws.amazon.com/dynamodb) technology more easy to use.
 
-The Faraday project consists of a set of libraries, binaries and other tools focused
-on helping developers succeed with their AWS projects;
+Michael Faraday was one of the founding fathers of the dynamo technology, and he is back to help out once again making
+the AWS DynamoDB (https://aws.amazon.com/dynamodb) technology more easy to use.
+
+The Faraday project consists of a set of libraries, binaries and other tools focused on helping developers succeed with
+their AWS projects;
+
 * faraday-orm : https://github.com/HOLTHOJ/faraday-orm
 * faraday-api : https://github.com/HOLTHOJ/faraday-api
 * faraday-deploy : https://github.com/HOLTHOJ/faraday-deploy
@@ -214,8 +235,7 @@ on helping developers succeed with their AWS projects;
 
 All the Faraday projects are released under the LGPL license.
 
-We always appreciate hearing from you when our libraries are used in your projects or applications. 
-
+We always appreciate hearing from you when our libraries are used in your projects or applications.
 
 ## TODO
 
