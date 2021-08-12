@@ -154,6 +154,10 @@ export function createEntityProxy(entityType: EntityType<{}>): { new(): EntityPr
                 if (elt.exposed) json[elt.propName] = this.getValue(elt.propName)
             })
 
+            if (this.entityType.def.options.exportTypeName) {
+                json["_type"] = this.entityType.def.name;
+            }
+
             // this.forEachId((id, value, valueIsSet) => {
             //     if (id.exposed) json[id.propName] = value
             // })
