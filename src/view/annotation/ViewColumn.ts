@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Converter} from "../../converter/Converter";
-import {StringConverter} from "../../converter/StringConverter";
+import {Converter, StringConverter} from "../../converter";
 
 /**
  *
@@ -27,7 +26,6 @@ export type ViewColumnDef = {
     name: string,
     required?: boolean,
     converter: Converter<string>,
-    // converter?: ViewColumnConverter<any, any>,
 };
 
 /**
@@ -41,21 +39,14 @@ export const VIEW_COLUMN_DEFS = new Map<Function, ViewColumnDef[]>();
 export type ViewColumnType = number | boolean | string | null | Array<ViewColumnType>;
 
 /**
- *
- */
-export type ViewColumnConverter<E extends ViewColumnType, T> = {
-    fromPrimitive(value: E): T
-    toPrimitive(value: T): E
-}
-
-/**
  * Exposes this property in the API response object.
  * The property can both be a field as well as a get()/set() accessor.
+ *
  * @param name      The name to use for this property in the response object. If not provided,
  *                  then the property's name will be used.
  * @param converter An optional converter to transform the value to a primitive so that it can be exported as JSON.
  */
-export function ViewColumn<E extends ViewColumnType, T = any>(name?: string, converter: Converter<string> = StringConverter/*, converter ?: ViewColumnConverter<E, T>*/) {
+export function ViewColumn<E extends ViewColumnType, T = any>(name?: string, converter: Converter<string> = StringConverter) {
 
     return (target: any, propertyKey: string, descriptor?: TypedPropertyDescriptor<T>) => {
 

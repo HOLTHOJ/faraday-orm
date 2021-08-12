@@ -16,7 +16,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {EntityManager, IdColumnDef} from "../../entity";
+import {EntityManager} from "../../entity";
 import {EntityProxy} from "../../entity/manager/EntityProxy";
 import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {ViewManager} from "./ViewManager";
@@ -75,10 +75,10 @@ class ViewCallback implements TransactionCallback {
 
     private setViewIndexColumns<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper) {
         const entityType = EntityManager.internal(record).entityType;
-        const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType) || [];
+        const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType.def) || [];
         entityViewTypes.forEach(elt => {
             const view = ViewManager.loadView(elt);
-            const viewSource = req(view.getViewSource(record.entityType));
+            const viewSource = req(view.getViewSource(record.entityType.def));
             if (view.loadSource(viewSource, record, true, this.session.pathGenerator)) {
                 // Source is loaded and the keys are set..
                 ViewCallback.addViewIdsToItem(view, record, item);
@@ -92,10 +92,10 @@ class ViewCallback implements TransactionCallback {
         });
     }
 
-    private static addViewIdsToItem(view: ViewProxy, record: EntityProxy, item: AttributeMapper) {
+    private static addViewIdsToItem(view: ViewProxy, record: EntityProxy<{}>, item: AttributeMapper) {
         view.forEachId((id: ViewIdColumnDef, value: any, valueIsSet: boolean) => {
             if (item.getValue(id) !== value) {
-                record.forEachId((recordId: IdColumnDef) => {
+                record.forEachId(recordId => {
                     if (id.name === recordId.name) {
                         throw new Error(`View ${view.viewType.ctor.name} is not allowed to override the ID values of the Entity.`);
                     }

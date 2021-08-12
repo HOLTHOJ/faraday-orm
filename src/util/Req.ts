@@ -16,6 +16,14 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+export function eq<T>(left: T, right : T, msg ?: string) : void {
+    if(left !== right) throw new Error(msg || "Not equal.");
+}
+
+export function neq<T>(left: T, right : T, msg ?: string) : void {
+    if(left === right) throw new Error(msg || "Not equal.");
+}
+
 /**
  * Ensures that the given value is not undefined, otherwise throwing an error.
  * This makes the variable effectively a required value.

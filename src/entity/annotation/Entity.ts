@@ -16,28 +16,30 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {ENTITY_IDS, IdColumnDef} from "./Id";
-import {ColumnDef, ENTITY_COLS} from "./Column";
-import {CallbackDef, ENTITY_CALLBACKS} from "./Callback";
+import {IdColumnDef} from "./Id";
+import {ColumnDef} from "./Column";
+import {CallbackDef} from "./Callback";
 import {Class} from "../../util";
-import {def, one, single, unique} from "../../util/Req";
+import {def} from "../../util/Req";
 import {KeyPath} from "../../util/KeyPath";
+import {ExposedDef} from "./Exposed";
 
 /** The entity annotation definition. */
 export type EntityDef<E extends object = {}> = {
-    ctor: Class<E>,
-    name: string,
-    options: {
-        exportTypeName: boolean,
-        generateStats: boolean
+    readonly ctor: Class<E>,
+    readonly keyPath?: KeyPath,
+    readonly name: string,
+    readonly options: {
+        readonly exportTypeName: boolean,
+        readonly generateStats: boolean
     }
 };
 
 /** @internal Repository of all entities and the constructor function on which they are defined. */
-export const ENTITY_DEF = new Map<Function, EntityType>();
+export const ENTITY_DEF = new Map<Function, EntityDef>();
 
 /** @internal Repository of all entities and the name under which they are defined. */
-export const ENTITY_REPO = new Map<string, EntityType>();
+export const ENTITY_REPO = new Map<string, EntityDef>();
 
 /** The full entity type details. */
 export type EntityType<E extends object = any> = {
@@ -47,6 +49,9 @@ export type EntityType<E extends object = any> = {
 
     /** All the columns defined on this entity type. */
     readonly cols: ColumnDef[],
+
+    /** All the properties that will be exposed when calling JSON.stringify(). */
+    readonly exposed: ExposedDef[],
 
     /**
      * Contains a custom key path for this entity.
@@ -99,53 +104,17 @@ export type EntityOptions = {
  */
 export function Entity<E extends object>(typeName: string, keyPath ?: KeyPath, options?: EntityOptions): (ctor: Class<E>) => void {
     return (ctor) => {
-
-        if (ENTITY_REPO.has(typeName)) throw new Error(`Duplicate entity type ${typeName}.`);
-
-        const cols = ENTITY_COLS.get(ctor) || [];
-        const ids = ENTITY_IDS.get(ctor) || [];
-        // const e = EMBEDDED_COLS.get(ctor) || [];
-        const cb = ENTITY_CALLBACKS.get(ctor) || [];
-        let tj = Object.getOwnPropertyDescriptor(ctor.prototype, "toJSON");
-
-        let instanceProto = Object.getPrototypeOf(ctor.prototype);
-        while (typeof tj === "undefined" && instanceProto) {
-            tj = Object.getOwnPropertyDescriptor(instanceProto, "toJSON");
-            instanceProto = Object.getPrototypeOf(instanceProto);
-        }
-
-        let proto = Object.getPrototypeOf(ctor);
-        while (proto) {
-            cols.push(...(ENTITY_COLS.get(proto) || []));
-            ids.push(...(ENTITY_IDS.get(proto) || []));
-            // e.push(...(EMBEDDED_COLS.get(proto) || []));
-            cb.push(...(ENTITY_CALLBACKS.get(proto) || []));
-
-            proto = Object.getPrototypeOf(proto);
-        }
-
         const entityDef: EntityDef = {
             ctor: ctor,
             name: typeName,
+            keyPath: keyPath,
             options: {
                 generateStats: def(options?.generateStats, true),
                 exportTypeName: def(options?.exportTypeName, true),
             }
         };
 
-        const entityType: EntityType = {
-            def: entityDef,
-            cols: unique(cols, col => col.name, true, `Duplicate column names not allowed.`),
-            keyPath: keyPath,
-            pk: single(ids.filter(elt => elt.idType === "PK"), `Missing required PK Id Column.`),
-            sk: one(ids.filter(elt => elt.idType === "SK"), `Illegal SK Id Column configuration.`),
-            // embedded: e,
-            cbs: cb.reverse(),
-            toJSON: tj,
-        };
-
-        ENTITY_DEF.set(ctor, entityType);
-        ENTITY_REPO.set(typeName, entityType);
+        ENTITY_DEF.set(ctor, entityDef);
     }
 }
 

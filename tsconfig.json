@@ -6,7 +6,7 @@
     "checkJs": false,
     "declaration": true,
     "outDir": "./lib",
-    "removeComments": true,
+    "removeComments": false,
     "strict": true,
     "sourceMap": false,
     "experimentalDecorators": true

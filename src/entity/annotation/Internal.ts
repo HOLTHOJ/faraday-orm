@@ -16,8 +16,18 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {ColumnDef, ENTITY_COLS} from "./Column";
-import {Converter} from "../../converter/Converter";
+/**
+ * The definition of a database column defined on an Entity class.
+ */
+export type InternalDef<T = any> = {
+
+    /** The property name. */
+    propName: string,
+
+};
+
+/** @internal Repository of all internal columns and the constructor function on which they are defined. */
+export const ENTITY_INTERNAL = new Map<Function, InternalDef[]>();
 
 /**
  * Configures a column to be an internal column. Internal columns cannot be modified directly from client applications.
@@ -33,27 +43,19 @@ import {Converter} from "../../converter/Converter";
  * it should never update the "UpdateTime" field itself, instead it should send back the old value, and the entity's
  * internal callback will update the field as part of the commit process.
  *
- * @param columnName        The name of the column in the database.
- * @param columnConverter   A converter to convert the value from/to their database attribute value.
- * @param required          Will validate the value of this column before storing it in the database.
- *
  * @see Editable
  */
-export function Internal<T>(columnName: string, columnConverter: Converter<T>, required ?: boolean) {
+export function Internal<T>() {
     return (target: any, propertyKey: string) => {
 
-        const columnDef: ColumnDef = {
+        const internalDef: InternalDef = {
             propName: propertyKey,
-            name: columnName,
-            converter: columnConverter,
-            required: !!required,
-            internal: true
         };
 
-        if (ENTITY_COLS.has(target.constructor)) {
-            ENTITY_COLS.get(target.constructor)!.push(columnDef);
+        if (ENTITY_INTERNAL.has(target.constructor)) {
+            ENTITY_INTERNAL.get(target.constructor)!.push(internalDef);
         } else {
-            ENTITY_COLS.set(target.constructor, [columnDef]);
+            ENTITY_INTERNAL.set(target.constructor, [internalDef]);
         }
     }
 }

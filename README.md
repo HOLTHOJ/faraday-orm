@@ -36,13 +36,11 @@ but its value can never differ from the value already existing in the DB.
 This ensures that client applications have not modified this field between consecutive GET and PUT requests.
 
 **Callbacks** are functions that are called during the process of retrieving or updating an item.
-They can modify internal and non-internal fields of the entity. Common use cases are;
-- Setting internal fields
-- Validating fields 
+They can modify internal and non-internal fields of the entity.
 
 The **UNDEFINED** value is a constant that marks the fields as not initialised yet. 
 This is necessary to differentiate fields that are not set from fields that are deliberatily set to `undefined`.
-It also avoids having to add the `| undefined` union type each field. 
+It also avoids having to add the `| undefined` union type to each field. 
 
 The full version of this example can be found in the test cases: [DBFile.ts](test/filesystem/model/DBFile.ts).
 ```typescript
@@ -69,6 +67,15 @@ export class DBFile extends Editable {
 
 }
 ``` 
+This will result in the following database items.
+
+| pk        | sk              | mimeType          | size |
+| --------- | --------------- | ----------------- | ---- |
+| acme/root | file/dog.png    | image/png         | 1286 |
+| acme/root | file/cat.png    | image/png         | 8676 |
+| acme/root | file/pets.xls   | application/excel | -1   |
+| acme/root | file/man.pdf    | application/pdf   | -1   |
+
 
 ## Entity manager
 

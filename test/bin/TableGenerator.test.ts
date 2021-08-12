@@ -16,21 +16,21 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Entity, Id} from "../../../src/entity";
-import {UNDEFINED} from "../../../src/util";
-import {Versionable} from "../../../src/entity/model/Versionable";
+import {DynamoDB} from "aws-sdk";
+import {DBFile} from "../filesystem/model/DBFile";
 
-@Entity("folder", {pkPath: ":account/:directory", skPath: "folder/:folderName"})
-export default class DBFolder extends Versionable {
+describe("tt", () => {
 
-    public account: string = UNDEFINED
+    test("tt", async () => {
+        const entities = [DBFile];
 
-    public directory: string = UNDEFINED
+        const dynamo = new DynamoDB();
+        const tableDefinition = await dynamo.describeTable({
+            TableName: "mxp-db-expert-dev"
+        }).promise();
 
-    @Id("PK")
-    public parent: string = UNDEFINED
+        console.log("Table", tableDefinition);
 
-    @Id("SK")
-    public folderName: string = UNDEFINED
+    });
 
-}
+});

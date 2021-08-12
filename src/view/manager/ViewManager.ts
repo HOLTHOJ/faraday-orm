@@ -123,9 +123,9 @@ export class ViewManager {
         // If we are sure that all attributes are projected, we can create an Entity instance.
         // In order to create the entity instance we require the $type column, which is only guaranteed
         // to be present for PROJECTED_ALL. Next we load the source into the view.
-        if (view.viewType.indexProjections === "PROJECTED_ALL") {
-            const entityType = EntityManager.getEntityType(data);
-            const viewSource = view.getViewSource(entityType);
+        if (view.viewType.indexProjections === "ALL") {
+            const entityType = this.entityManager.getEntityType(data);
+            const viewSource = view.getViewSource(entityType.def);
 
             if (typeof viewSource === "undefined") {
                 console.warn(`Entity type ${entityType.def.name} not defined as a source on view ${viewType.ctor.name}.`);
@@ -138,7 +138,7 @@ export class ViewManager {
         }
 
         // If only custom attributes are projected, then load in the attributes that are annotated.
-        if (view.viewType.indexProjections === "CUSTOM") {
+        if (view.viewType.indexProjections === "INCLUDE") {
             view.forEachColumn((col => {
                 view.setValue(col.propName, item.getValue({name: col.name, converter: col.converter}));
             }));

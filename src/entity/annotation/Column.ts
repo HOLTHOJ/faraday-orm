@@ -41,6 +41,8 @@ export type ColumnDef<T = any> = {
      */
     internal: boolean,
 
+    exposed: boolean,
+
     /** The default value to use if the value is not set. */
     defaultValue?: () => T
 
@@ -66,6 +68,7 @@ export function Column<T>(columnName: string, columnConverter: Converter<T>, req
             converter: columnConverter,
             required: !!required,
             internal: false,
+            exposed: true,
             defaultValue: defaultValue
         };
 

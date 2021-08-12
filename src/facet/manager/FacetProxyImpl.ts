@@ -17,11 +17,12 @@
  */
 
 import {FacetProxy, FacetProxyMethods} from "./FacetProxy";
-import {EntityType, IdColumnDef} from "../../entity";
+import {EntityType, IdDef} from "../../entity";
 import {UNDEFINED} from "../../util";
 import {PathGenerator} from "../../util/KeyPath";
 import {DEFAULT, FacetType} from "../annotation/Facet";
 import {req, single} from "../../util/Req";
+import {IdColumnDef} from "../../entity/annotation/Id";
 
 /**
  * Creates a FacetProxy from an Facet/Entity class.

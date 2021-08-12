@@ -16,10 +16,11 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {CallbackOperation, ColumnDef, EntityType, IdColumnDef} from "..";
+import {CallbackOperation, ColumnDef, EntityType, IdDef} from "..";
 import {PathGenerator} from "../../util/KeyPath";
-import {EntityManagerConfig} from "./EntityManager";
 import {FacetType} from "../../facet/annotation/Facet";
+import {SessionConfig} from "./SessionManager";
+import {IdColumnDef} from "../annotation/Id";
 
 /** A managed entity. */
 export type EntityProxy<E extends object = any> = E & EntityProxyMethods<E>;
@@ -82,7 +83,7 @@ export interface EntityProxyMethods<E extends object = any> {
      * @param operation
      * @param config
      */
-    executeCallbacks(operation: CallbackOperation, config: EntityManagerConfig): void;
+    executeCallbacks(operation: CallbackOperation, config: SessionConfig): void;
 
     /**
      * Handles the stringify functionality for this entity.

@@ -16,16 +16,21 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {EntityManager} from "../../src/entity";
-import {DBFile} from "./model/DBFile";
+import DBFile from "./model/DBFile";
+import {EntityManagerFactory} from "../../src/entity/manager/EntityManagerFactory";
 
 describe("test/filesystem", () => {
 
     test("GET root/test-file", async () => {
         const rand = new Date().getTime().toString(36);
-        const entityManager = EntityManager.get({tableName: "faraday-test", userName: "owner"});
+        const entityManager = EntityManagerFactory.load({
+            tableName: "faraday-test",
+            userName: "owner",
+            tableConfig: "./test/filesystem/faraday.orm.json",
+            entityLoader: file => require(file).default,
+        });
 
-        const fileToCreate = EntityManager.load(DBFile);
+        const fileToCreate = entityManager.load(DBFile);
         fileToCreate.account = "acme";
         fileToCreate.directory = "root";
         fileToCreate.fileName = "test-file-" + rand;
@@ -34,7 +39,7 @@ describe("test/filesystem", () => {
         console.log("Created file", JSON.stringify(createdFile));
         console.log("Capacity", entityManager.session.lastLog?.putItemOutput?.ConsumedCapacity);
 
-        const fileToGet = EntityManager.load(DBFile);
+        const fileToGet = entityManager.load(DBFile);
         fileToGet.account = "acme";
         fileToGet.directory = "root";
         fileToGet.fileName = "test-file-" + rand;

@@ -18,7 +18,7 @@
 
 import {ViewProxy, ViewProxyMethods} from "./ViewProxy";
 import {ViewColumnDef, ViewIdColumnDef, ViewQueryDef, ViewSourceDef, ViewType} from "..";
-import {EntityManager, EntityType} from "../../entity";
+import {EntityDef, EntityManager, EntityType} from "../../entity";
 import {one, req, single} from "../../util/Req";
 import {UNDEFINED} from "../../util";
 import {PathGenerator} from "../../util/KeyPath";
@@ -113,7 +113,7 @@ export function createViewProxy(viewType: ViewType): { new(): ViewProxy } {
                 `Invalid query name ${queryName}. Not found on ${viewType.ctor}.`);
         }
 
-        getViewSource<E extends object>(entityType: EntityType<E>): ViewSourceDef<E> | undefined {
+        getViewSource<E extends object>(entityType: EntityDef<E>): ViewSourceDef<E> | undefined {
             return one(this.viewType.sources.filter(elt => elt.entityType === entityType),
                 // .filter(elt => elt.cond ? elt.cond(sourceEntity) : true),
                 `Missing source configuration for ${entityType}.`);

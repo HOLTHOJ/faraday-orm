@@ -18,7 +18,7 @@
 
 import {ViewColumnDef, ViewIdColumnDef, ViewQueryDef, ViewSourceDef, ViewType} from "..";
 import {PathGenerator} from "../../util/KeyPath";
-import {EntityType} from "../../entity";
+import {EntityDef, EntityType} from "../../entity";
 
 /** A view instance. */
 export type ViewProxy<V extends object = any> = V & ViewProxyMethods<V>;
@@ -74,7 +74,7 @@ export type ViewProxyMethods<V extends object = any> = {
      * @return {ViewSourceDef<E>}
      * @param entityType
      */
-    getViewSource<E extends object>(entityType: EntityType<E>): ViewSourceDef<E> | undefined
+    getViewSource<E extends object>(entityType: EntityDef<E>): ViewSourceDef<E> | undefined
 
     /**
      * Parses the given key paths using this View instance and populates their resp. properties.

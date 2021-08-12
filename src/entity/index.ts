@@ -29,7 +29,7 @@ export {EntityType} from "./annotation/Entity";
 
 export {Id} from "./annotation/Id";
 export {IdType} from "./annotation/Id";
-export {IdColumnDef} from "./annotation/Id";
+export {IdDef} from "./annotation/Id";
 
 export {Internal} from "./annotation/Internal";
 

@@ -20,22 +20,30 @@ import {AWSError, DynamoDB} from "aws-sdk";
 import {PromiseResult} from "aws-sdk/lib/request";
 
 /**
- * REQ_ONLY = logs only the request and timestamps (minimum level)
- * STATS = logs the request and response stats (e.g. consumed capacity)
+ * REQ_ONLY = logs only the request and timestamps (minimum level).
+ * STATS = logs the request and response stats (e.g. consumed capacity).
+ * FULL = logs all previous levels and also logs all the returned items.
  */
 export type LogLevel = "REQ_ONLY" | "STATS" | "FULL";
+
+export type SessionConfig = {
+    /** A username to identify who is making the updates. */
+    readonly user: string,
+    /** The log level used. */
+    readonly level: LogLevel,
+}
 
 /**
  *
  */
 export type SessionLog = {
-    timestamp: Date,
-    input: string,
-    getItemOutput?: DynamoDB.Types.GetItemOutput,
-    putItemOutput?: DynamoDB.PutItemOutput,
-    deleteItemOutput?: DynamoDB.DeleteItemOutput,
-    queryOutput?: DynamoDB.Types.QueryOutput,
-    error?: any
+    readonly timestamp: Date,
+    readonly input: string,
+    readonly getItemOutput?: DynamoDB.Types.GetItemOutput,
+    readonly putItemOutput?: DynamoDB.PutItemOutput,
+    readonly deleteItemOutput?: DynamoDB.DeleteItemOutput,
+    readonly queryOutput?: DynamoDB.Types.QueryOutput,
+    readonly error?: any
 }
 
 /**
@@ -46,11 +54,12 @@ export type SessionLog = {
 export class SessionManager {
 
     private readonly db: DynamoDB;
-    private readonly level: LogLevel;
+    // private readonly level: LogLevel;
+    public readonly config: SessionConfig;
     public readonly log = new Array<SessionLog>();
 
-    constructor(options?: DynamoDB.Types.ClientConfiguration, level: LogLevel = "STATS") {
-        this.level = level;
+    constructor(config: SessionConfig, options?: DynamoDB.Types.ClientConfiguration) {
+        this.config = config;
         this.db = new DynamoDB(options);
     }
 
@@ -60,7 +69,7 @@ export class SessionManager {
 
     async getItem(params: DynamoDB.Types.GetItemInput): Promise<PromiseResult<DynamoDB.Types.GetItemOutput, AWSError>> {
         try {
-            if (this.level === "REQ_ONLY") {
+            if (this.config.level === "REQ_ONLY") {
                 params.ReturnConsumedCapacity = undefined;
             } else {
                 params.ReturnConsumedCapacity = "TOTAL";
@@ -70,7 +79,7 @@ export class SessionManager {
 
             // remove memory-heavy result data.
             const {$response, ...logResult} = result;
-            if (this.level !== "FULL") delete logResult.Item;
+            if (this.config.level !== "FULL") delete logResult.Item;
             this.log.push(SessionManager.createLog(params, {getItemOutput: logResult}));
 
             return result;
@@ -82,7 +91,7 @@ export class SessionManager {
 
     async putItem(params: DynamoDB.PutItemInput): Promise<PromiseResult<DynamoDB.PutItemOutput, AWSError>> {
         try {
-            if (this.level === "REQ_ONLY") {
+            if (this.config.level === "REQ_ONLY") {
                 params.ReturnConsumedCapacity = undefined;
                 params.ReturnItemCollectionMetrics = undefined;
             } else {
@@ -94,7 +103,7 @@ export class SessionManager {
 
             // remove memory-heavy result data.
             const {$response, ...logResult} = result;
-            if (this.level !== "FULL") delete logResult.Attributes;
+            if (this.config.level !== "FULL") delete logResult.Attributes;
             this.log.push(SessionManager.createLog(params, {putItemOutput: logResult}));
 
             return result;
@@ -106,7 +115,7 @@ export class SessionManager {
 
     async deleteItem(params: DynamoDB.DeleteItemInput): Promise<PromiseResult<DynamoDB.DeleteItemOutput, AWSError>> {
         try {
-            if (this.level === "REQ_ONLY") {
+            if (this.config.level === "REQ_ONLY") {
                 params.ReturnConsumedCapacity = undefined;
                 params.ReturnItemCollectionMetrics = undefined;
             } else {
@@ -118,7 +127,7 @@ export class SessionManager {
 
             // remove memory-heavy result data.
             const {$response, ...logResult} = result;
-            if (this.level !== "FULL") delete logResult.Attributes;
+            if (this.config.level !== "FULL") delete logResult.Attributes;
             this.log.push(SessionManager.createLog(params, {deleteItemOutput: logResult}));
 
             return result;
@@ -130,7 +139,7 @@ export class SessionManager {
 
     async query(params: DynamoDB.Types.QueryInput): Promise<PromiseResult<DynamoDB.Types.QueryOutput, AWSError>> {
         try {
-            if (this.level === "REQ_ONLY") {
+            if (this.config.level === "REQ_ONLY") {
                 params.ReturnConsumedCapacity = undefined;
             } else {
                 params.ReturnConsumedCapacity = "TOTAL";
@@ -140,7 +149,7 @@ export class SessionManager {
 
             // remove memory-heavy result data.
             const {$response, ...logResult} = result;
-            if (this.level !== "FULL") delete logResult.Items;
+            if (this.config.level !== "FULL") delete logResult.Items;
             this.log.push(SessionManager.createLog(params, {queryOutput: logResult}));
 
             return result;

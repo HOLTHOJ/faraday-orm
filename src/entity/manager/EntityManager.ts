@@ -19,32 +19,39 @@
 import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {StringConverter} from "../../converter";
 import {DynamoDB} from "aws-sdk";
-import {def, req} from "../../util/Req";
+import {req} from "../../util/Req";
 import {ENTITY_DEF, ENTITY_REPO, EntityType} from "../annotation/Entity";
 import {EntityProxy} from "./EntityProxy";
 import {createEntityProxy} from "./EntityProxyImpl";
 import {Class} from "../../util";
 import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
-import {PathToRegexpPathGenerator} from "../../util/PathToRegexpPathGenerator";
 import {PathGenerator} from "../../util/KeyPath";
-import {LogLevel, SessionManager} from "./SessionManager";
+import {SessionConfig, SessionManager} from "./SessionManager";
 import {TransactionManager} from "./TransactionManager";
+import {TableDef} from "./TableConfig";
 
 /**
  * General config object for the EntityManager.
  */
 export type EntityManagerConfig = {
 
-    /** A username to identify who is making the updates. */
-    readonly userName: string,
-
-    /** The table name. */
+    /** The table name. This needs to match with a table definition in the TableConfig. */
     readonly tableName: string,
+
+    /**
+     * Every EntityManager can only connect to 1 single table.
+     * This is the definition for that table as described in the TableConfig json file.
+     */
+    readonly tableDef: TableDef,
+
+    /**
+     * A map of loaded entities definitions.
+     * Each loaded entity is described as an Entity Type.
+     */
+    readonly entityDef: Map<string, EntityType>
 
     /** The default path generator for this entity manager. */
     readonly pathGenerator: PathGenerator,
-
-    readonly logLevel: LogLevel;
 
 };
 
@@ -61,9 +68,6 @@ export class EntityNotFoundException extends Error {
  */
 export class EntityManager {
 
-    /** Global config as a fallback for all Entity manager instances. */
-    public static GLOBAL_CONFIG ?: Partial<EntityManagerConfig>;
-
     /** The technical column that is used to match the db item with the model. */
     public static TYPE_COLUMN = {name: "$type", converter: StringConverter};
 
@@ -72,31 +76,24 @@ export class EntityManager {
 
     /**
      * The session keeps track of all the database calls made by this Entity manager instance.
-     * The session is mapped one-to-one with the Entity manager instance.
+     * The session is mapped one-to-one with the Entity manager instance, so if you want to execute operations
+     * in a different session (e.g. with a different user), then you need to create a new Entity manager instance.
      *
      * @quote Hibernate (documentation/src/main/asciidoc/userguide/chapters/architecture/Architecture.adoc)
      *        "In JPA nomenclature, the Session is represented by an EntityManager."
      * */
     public readonly session: SessionManager;
 
-    /**
-     *
-     */
     public readonly transactionManager: TransactionManager;
 
-    private constructor(config?: Partial<EntityManagerConfig>) {
-        this.config = {
-            logLevel: req(config?.logLevel || EntityManager.GLOBAL_CONFIG?.logLevel || "STATS", `Missing logLevel in config.`),
-            userName: req(config?.userName || EntityManager.GLOBAL_CONFIG?.userName, `Missing user name in config.`),
-            tableName: req(config?.tableName || EntityManager.GLOBAL_CONFIG?.tableName, `Missing table name in config.`),
-            pathGenerator: def(config?.pathGenerator || EntityManager.GLOBAL_CONFIG?.pathGenerator, new PathToRegexpPathGenerator()),
-        }
-        this.session = new SessionManager(undefined, this.config.logLevel);
+    public constructor(entityManagerConfig: EntityManagerConfig, sessionConfig: SessionConfig) {
+        this.config = entityManagerConfig;
+        this.session = new SessionManager(sessionConfig);
         this.transactionManager = new TransactionManager(this.session, this.config);
     }
 
-    public static get(config?: Partial<EntityManagerConfig>): EntityManager {
-        return new EntityManager(config);
+    public static get(entityManagerConfig: EntityManagerConfig, sessionConfig: SessionConfig): EntityManager {
+        return new EntityManager(entityManagerConfig, sessionConfig);
     }
 
     /***************************************************************************************
@@ -168,7 +165,7 @@ export class EntityManager {
         }, false);
 
         // Execute callbacks before extracting the columns.
-        record.executeCallbacks("INSERT", this.config)
+        record.executeCallbacks("INSERT", this.session.config)
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -217,7 +214,7 @@ export class EntityManager {
         }, true);
 
         // Run callbacks because they could generate ID columns.
-        record.executeCallbacks("DELETE", this.config);
+        record.executeCallbacks("DELETE", this.session.config);
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -251,7 +248,7 @@ export class EntityManager {
      */
     public async updateItem<E extends object>(entity: E, expectedEntity ?: E): Promise<E> {
         const record = EntityManager.internal(entity);
-        const expected = EntityManager.internal(expectedEntity || EntityManager.load(record.entityType));
+        const expected = EntityManager.internal(expectedEntity || this.load(record.entityType));
 
         // Validate that record & expected are the same type.
         if (record.entityType !== expected.entityType) throw new Error(`Inconsistent types.`);
@@ -273,7 +270,7 @@ export class EntityManager {
         }, false)
 
         // Call callbacks before extracting the columns.
-        record.executeCallbacks("UPDATE", this.config);
+        record.executeCallbacks("UPDATE", this.session.config);
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -314,14 +311,9 @@ export class EntityManager {
             throw new Error(`Unexpected record type ${entityType}.`);
         }
 
-        const entity = EntityManager.load(entityType);
+        const entity = this.load(entityType);
         entity.forEachId((id) => {
-            const value = item.getValue(id);
-            if (id.required && typeof value === "undefined") {
-                console.warn("Database id", id, "is required but no value was found. Loading will continue, " +
-                    "but the Entity ORM configuration is likely not (no longer) in line with the data.");
-            }
-            entity.setValue(id.propName, value);
+            entity.setValue(id.propName, item.getValue(id));
         }, false);
 
         entity.forEachCol((col) => {
@@ -382,9 +374,9 @@ export class EntityManager {
      * @see EntityManager#getEntityType
      * @return A new managed entity instance.
      */
-    public static load<X extends object>(entityType: string | Class<X> | EntityType<X>): EntityProxy<X> {
+    public load<X extends object>(entityType: string | Class<X> | EntityType<X>): EntityProxy<X> {
         const type = (typeof entityType === "function" || typeof entityType === "string")
-            ? EntityManager.getEntityType(entityType) : entityType;
+            ? this.getEntityType(entityType) : entityType;
         return new (createEntityProxy(type))();
     }
 
@@ -403,15 +395,15 @@ export class EntityManager {
      * @see ENTITY_REPO
      * @return The entity type if found.
      */
-    public static getEntityType<E extends object = any>(entity: string | Class<E> | Function | DynamoDB.AttributeMap): EntityType<E> {
+    public getEntityType<E extends object = any>(entity: string | Class<E> | Function | DynamoDB.AttributeMap): EntityType<E> {
         if (typeof entity === "string") {
-            return req(ENTITY_REPO.get(entity), `Invalid entity type name ${entity}.`);
+            return req(this.config.entityDef.get(entity), `Invalid entity type name ${entity}.`);
         } else if (typeof entity === "function") {
-            return req(ENTITY_DEF.get(entity), `Invalid entity type ${entity}.`);
+            return req(this.config.entityDef.get(req(ENTITY_DEF.get(entity)).name), `Invalid entity type ${entity}.`);
         } else {
             const item = new AttributeMapper(entity);
             const type = item.getRequiredValue(EntityManager.TYPE_COLUMN);
-            return req(ENTITY_REPO.get(type), `Invalid entity type name ${entity}.`);
+            return req(this.config.entityDef.get(type), `Invalid entity type name ${entity}.`);
         }
     }
 

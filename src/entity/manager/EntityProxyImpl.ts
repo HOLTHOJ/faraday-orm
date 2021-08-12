@@ -16,13 +16,14 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {CallbackOperation, ColumnDef, EntityType, IdColumnDef} from "..";
+import {CallbackOperation, ColumnDef, EntityType} from "..";
 import {EntityProxy, EntityProxyMethods} from "./EntityProxy";
 import {UNDEFINED} from "../../util";
 import {one, req} from "../../util/Req";
 import {PathGenerator} from "../../util/KeyPath";
-import {EntityManagerConfig} from "./EntityManager";
 import {FACET_REPO, FacetType} from "../../facet/annotation/Facet";
+import {SessionConfig} from "./SessionManager";
+import {IdColumnDef} from "../annotation/Id";
 
 /**
  * @internal Implementation of the EntityProxyMethods.
@@ -30,9 +31,12 @@ import {FACET_REPO, FacetType} from "../../facet/annotation/Facet";
  * Currently there is no clear need to create a subclass and force the user to first load the entity before
  * being able to use it. But this is already part of a preliminary architecture where we will need to override
  * the default functions on an object;
- *  - toJSON needs to export the entity type (if enabled).
+ *  - retrieve the EntityType configuration on the instance itself
+ *  - toJSON should not by default export all public properties (e.g. decomposed key properties)
+ *  - toJSON needs to export the entity type (if enabled)
  *  - toJSON needs to include delegate entities on the same level
  *  - resolve/lazy-load references
+ *  - track changed properties for dynamodb update operations
  *  - ...
  *
  * Currently the user is required to create the proxy before populating any properties,
@@ -93,7 +97,7 @@ export function createEntityProxy(entityType: EntityType<{}>): { new(): EntityPr
             });
         }
 
-        public executeCallbacks<E>(operation: CallbackOperation, config: EntityManagerConfig) {
+        public executeCallbacks<E>(operation: CallbackOperation, config: SessionConfig) {
             this.entityType.cbs.forEach(cback => {
                 this.getValue(cback.propName).call(this, operation, config);
             });
@@ -144,16 +148,18 @@ export function createEntityProxy(entityType: EntityType<{}>): { new(): EntityPr
         }
 
         public toJSON(key ?: string): object {
-            let json: any = {}
-            if (this.entityType.toJSON) {
-                json = this.entityType.toJSON.value.call(this, key);
-            } else {
-                json = this;
-            }
+            const json = {} as any
 
-            if (this.entityType.def.options.exportTypeName) {
-                json["_type"] = this.entityType.def.name;
-            }
+            this.entityType.exposed.forEach(elt => {
+                if (elt.exposed) json[elt.propName] = this.getValue(elt.propName)
+            })
+
+            // this.forEachId((id, value, valueIsSet) => {
+            //     if (id.exposed) json[id.propName] = value
+            // })
+            // this.forEachCol((col, value, valueIsSet) => {
+            //     if (col.exposed) json[col.propName] = value
+            // })
 
             return json;
         }

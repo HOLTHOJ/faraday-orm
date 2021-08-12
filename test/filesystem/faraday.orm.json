@@ -1,0 +1,196 @@
+{
+  "faraday-default": {
+    "entities": [
+      "./model/DBFile",
+      "./model/DBFolder"
+    ]
+  },
+  "faraday-test": {
+    "entities": [
+      "./model/DBFile",
+      "./model/DBFolder"
+    ],
+    "ids": {
+      "PK": "pk",
+      "SK": "sk"
+    },
+    "facets": {
+      "LSI1": {
+        "index": "pk-lsi1-index",
+        "column": "lsi1",
+        "projectionType": "ALL"
+      },
+      "LSI2": {
+        "index": "pk-lsi2-index",
+        "column": "lsi2",
+        "projectionType": "ALL"
+      },
+      "LSI3": {
+        "index": "pk-lsi3-index",
+        "column": "lsi3",
+        "projectionType": "ALL"
+      },
+      "LSI4": {
+        "index": "pk-lsi4-index",
+        "column": "lsi4",
+        "projectionType": "ALL"
+      },
+      "LSI5": {
+        "index": "pk-lsi5-index",
+        "column": "lsi5",
+        "projectionType": "KEYS_ONLY"
+      }
+    }
+  },
+  "Table": {
+    "AttributeDefinitions": [
+      {
+        "AttributeName": "lsi1",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "lsi2",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "lsi3",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "lsi4",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "lsi5",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "pk",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "sk",
+        "AttributeType": "S"
+      }
+    ],
+    "TableName": "faraday-test",
+    "KeySchema": [
+      {
+        "AttributeName": "pk",
+        "KeyType": "HASH"
+      },
+      {
+        "AttributeName": "sk",
+        "KeyType": "RANGE"
+      }
+    ],
+    "TableStatus": "ACTIVE",
+    "CreationDateTime": "2020-08-14T14:42:37.604Z",
+    "ProvisionedThroughput": {
+      "NumberOfDecreasesToday": 0,
+      "ReadCapacityUnits": 1,
+      "WriteCapacityUnits": 1
+    },
+    "TableSizeBytes": 320,
+    "ItemCount": 3,
+    "TableArn": "arn:aws:dynamodb:eu-west-1:883530191785:table/faraday-test",
+    "TableId": "88e4b936-362b-4c0e-bff2-bdbe4c50cadf",
+    "LocalSecondaryIndexes": [
+      {
+        "IndexName": "pk-lsi5-index",
+        "KeySchema": [
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "lsi5",
+            "KeyType": "RANGE"
+          }
+        ],
+        "Projection": {
+          "ProjectionType": "KEYS_ONLY"
+        },
+        "IndexSizeBytes": 0,
+        "ItemCount": 0,
+        "IndexArn": "arn:aws:dynamodb:eu-west-1:883530191785:table/faraday-test/index/pk-lsi5-index"
+      },
+      {
+        "IndexName": "pk-lsi3-index",
+        "KeySchema": [
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "lsi3",
+            "KeyType": "RANGE"
+          }
+        ],
+        "Projection": {
+          "ProjectionType": "ALL"
+        },
+        "IndexSizeBytes": 0,
+        "ItemCount": 0,
+        "IndexArn": "arn:aws:dynamodb:eu-west-1:883530191785:table/faraday-test/index/pk-lsi3-index"
+      },
+      {
+        "IndexName": "pk-lsi1-index",
+        "KeySchema": [
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "lsi1",
+            "KeyType": "RANGE"
+          }
+        ],
+        "Projection": {
+          "ProjectionType": "ALL"
+        },
+        "IndexSizeBytes": 0,
+        "ItemCount": 0,
+        "IndexArn": "arn:aws:dynamodb:eu-west-1:883530191785:table/faraday-test/index/pk-lsi1-index"
+      },
+      {
+        "IndexName": "pk-lsi4-index",
+        "KeySchema": [
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "lsi4",
+            "KeyType": "RANGE"
+          }
+        ],
+        "Projection": {
+          "ProjectionType": "ALL"
+        },
+        "IndexSizeBytes": 0,
+        "ItemCount": 0,
+        "IndexArn": "arn:aws:dynamodb:eu-west-1:883530191785:table/faraday-test/index/pk-lsi4-index"
+      },
+      {
+        "IndexName": "pk-lsi2-index",
+        "KeySchema": [
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "lsi2",
+            "KeyType": "RANGE"
+          }
+        ],
+        "Projection": {
+          "ProjectionType": "ALL"
+        },
+        "IndexSizeBytes": 0,
+        "ItemCount": 0,
+        "IndexArn": "arn:aws:dynamodb:eu-west-1:883530191785:table/faraday-test/index/pk-lsi2-index"
+      }
+    ]
+  }
+}

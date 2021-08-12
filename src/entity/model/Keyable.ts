@@ -43,7 +43,7 @@ export const DEFAULT_KEY_GENERATOR = () => Keyable.generateUUID();
  * Instead this base class will generate a near-perfect UUID and store it in an instance property.
  * Subclasses can then use this field as their Id or as a part of their composite Id.
  *
- * The generated Id will start with a Time-based component which provides a natural ordering if it used as SK.
+ * The generated Id will start with a Time-based component which provides a natural ordering if it is used as SK.
  * The default Id generator function can be overridden by providing a custom generator in the constructor.
  *
  * Example of using the ID in a record;
@@ -72,7 +72,7 @@ export abstract class Keyable {
 
     private readonly _generator: KeyGenerator;
 
-    constructor(options?: KeyableOptions) {
+    protected constructor(options?: KeyableOptions) {
         this._generator = def(options?.generator, DEFAULT_KEY_GENERATOR);
     }
 
@@ -85,6 +85,7 @@ export abstract class Keyable {
 
     /**
      * Generates a near-perfect UUID composed of a time component and a random string.
+     * The generated Id will start with a Time-based component which provides a natural ordering.
      *
      * @return {string}
      */

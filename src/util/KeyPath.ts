@@ -22,14 +22,12 @@
 export type KeyPath = {
 
     /**
-     * The PK path. This will be fed to the PathGenerator
-     * and used as the PK Id column value.
+     * The PK path. This will be fed to the PathGenerator and used as the PK Id column value.
      */
     pkPath: string,
 
     /**
-     * The SK path. This will be fed to the PathGenerator
-     * and used as the SK Id column value.
+     * The SK path. This will be fed to the PathGenerator and used as the SK Id column value.
      * This is optional if the entity does not define a SK Id column.
      */
     skPath?: string,

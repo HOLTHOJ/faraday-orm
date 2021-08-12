@@ -16,11 +16,14 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-/** The column definition for this Id column. */
+/** The type of id column. Only 8 LSI indexes are allowed atm. */
+export type FacetIdType = "LSI1" | "LSI2" | "LSI3" | "LSI4" | "LSI5" | "LSI6" | "LSI7" | "LSI8";
+
+/** The column definition for this FacetId column. */
 export type FacetIdDef = {
     propName: PropertyKey,
-    facetName: string,
-    indexName: string,
+    facetIdType: FacetIdType,
+    // indexName: string,
 };
 
 /** @internal Repository of all ids and the constructor function on which they are defined. */
@@ -32,13 +35,14 @@ export const FACET_IDS = new Map<Function, FacetIdDef[]>();
  * @param facetName
  * @param indexName
  */
-export function FacetId(facetName: string, indexName: string) {
+export function FacetId(idType: FacetIdType, ) {
     return (target: any, propertyKey: PropertyKey) => {
 
         const facetIdDef: FacetIdDef = {
             propName: propertyKey,
-            facetName: facetName,
-            indexName: indexName,
+            facetIdType: idType,
+            // facetName: facetName,
+            // indexName: indexName,
         };
 
         if (FACET_IDS.has(target.constructor)) {

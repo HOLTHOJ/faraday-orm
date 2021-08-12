@@ -50,7 +50,7 @@ export class FacetManager {
 
         const facetProxy = FacetManager.internal(entity);
         const facetType = (typeof queryName !== "undefined")
-            ? FacetManager.getFacetType(facetProxy.entityType, queryName)
+            ? this.getFacetType(facetProxy.entityType, queryName)
             : FacetManager.getDefaultFacetType(facetProxy.entityType);
 
         // Compile the table keys.
@@ -61,12 +61,12 @@ export class FacetManager {
             if (id.idType === "PK") {
                 mapper.eq(id, value)
             } else if (valueIsSet) {
-                mapper.apply(facetType.operation, id, value);
+                // mapper.apply(facetType.operation, {name: this.entityManager.tableDef.facets[id.idType], converter: id.converter}, value);
             }
         }, false);
 
-        const indexName = (facetType.indexName === DEFAULT) ? undefined : facetType.indexName;
-        const queryInput: QueryInput = {indexName: indexName, record: facetProxy, item: mapper};
+        const indexName = (facetType.indexName === DEFAULT) ? undefined : req(this.entityManager.config.tableDef.facets)[facetType.indexName];
+        const queryInput: QueryInput = {indexName: indexName?.index, record: facetProxy, item: mapper};
 
         return new ResultSet(queryInput, this.transactionManager,
             (elt) => this.entityManager.loadFromDB(facetProxy.entityType, elt));
@@ -121,9 +121,9 @@ export class FacetManager {
      *
      * @return A new managed facet instance.
      */
-    public static load<X extends object>(entityType: string | Class<X> | EntityType<X>): FacetProxy<X> {
+    public load<X extends object>(entityType: string | Class<X> | EntityType<X>): FacetProxy<X> {
         const eType = (typeof entityType === "function" || typeof entityType === "string")
-            ? EntityManager.getEntityType(entityType) : entityType;
+            ? this.entityManager.getEntityType(entityType) : entityType;
         return new (createFacetProxy(eType))();
     }
 
@@ -133,9 +133,9 @@ export class FacetManager {
      *
      * @return {EntityType<E>}
      */
-    static getFacetType<F extends object>(entity: string | Class<F> | EntityType<F>, queryName: string): FacetType<F> {
+    getFacetType<F extends object>(entity: string | Class<F> | EntityType<F>, queryName: string): FacetType<F> {
         const entityType = (typeof entity === "function" || typeof entity === "string")
-            ? EntityManager.getEntityType(entity) : entity;
+            ? this.entityManager.getEntityType(entity) : entity;
         const entityFacets = req(FACET_REPO.get(entityType.def.ctor));
         return single(entityFacets.filter(elt => elt.queryName === queryName));
     }

@@ -18,7 +18,8 @@
 
 import {PathGenerator} from "../../util/KeyPath";
 import {FacetType} from "../annotation/Facet";
-import {EntityType, IdColumnDef} from "../../entity";
+import {EntityType, IdDef} from "../../entity";
+import {IdColumnDef} from "../../entity/annotation/Id";
 
 /** A facet instance. */
 export type FacetProxy<F extends object = any> = F & FacetProxyMethods<F>;

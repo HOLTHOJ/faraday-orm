@@ -22,46 +22,45 @@ import {Callback, CallbackOperation, Column, Entity, Id, Internal} from "../../.
 import {Editable} from "../../../src/entity/model/Editable";
 import {Facet, FacetId} from "../../../src/facet";
 import {EntityManagerConfig} from "../../../src/entity/manager/EntityManager";
+import {Exposed} from "../../../src/entity/annotation/Exposed";
 
-const Facets = {
-    size: {name: "size-facet", index: "lsi1-index"},
-    mimeType: {name: "mimetype-facet", index: "lsi2-index"},
-}
-
-@Facet(Facets.size.index, DBFile.QUERY.ORDER_BY_SIZE, "BEGINS_WITH", "file/")
-@Facet(Facets.size.index, DBFile.QUERY.ORDER_BY_SIZE_NAME, "BEGINS_WITH", "file/:size/")
-@Facet(Facets.mimeType.index, DBFile.QUERY.ORDER_BY_MIME_TYPE, "BEGINS_WITH", "file/")
-@Facet(Facets.mimeType.index, DBFile.QUERY.FILTER_BY_MIME_TYPE, "EQ", "file/:mimeType")
+@Facet("LSI1", DBFile.QUERY.ORDER_BY_SIZE, "BEGINS_WITH", "file/")
+@Facet("LSI1", DBFile.QUERY.FILTER_BY_SIZE, "BEGINS_WITH", "file/:size/")
+@Facet("LSI2", DBFile.QUERY.ORDER_BY_MIME_TYPE, "BEGINS_WITH", "file/")
+@Facet("LSI2", DBFile.QUERY.FILTER_BY_MIME_TYPE, "EQ", "file/:mimeType")
 
 @Entity("file", {pkPath: ":account/:directory", skPath: "file/:fileName"})
-export class DBFile extends Editable {
+export default class DBFile extends Editable {
 
     public static QUERY = {
         ORDER_BY_SIZE: "order-by-size",
-        ORDER_BY_SIZE_NAME: "order-by-size-name",
+        FILTER_BY_SIZE: "filter-by-size",
         ORDER_BY_MIME_TYPE: "order-by-mimetype",
         FILTER_BY_MIME_TYPE: "filter-by-mimetype",
     }
 
+    @Exposed()
     public account: string = UNDEFINED
 
+    @Exposed()
     public directory: string = UNDEFINED
 
-    @Id("PK", "pk")
-    public parent: string = UNDEFINED
+    @Id("PK")
+    public path: string = UNDEFINED
 
-    @Id("SK", "sk")
+    @Id("SK")
     public fileName: string = UNDEFINED
 
-    @FacetId(Facets.mimeType.name, Facets.mimeType.index)
+    @FacetId("LSI2")
     @Column("mimeType", StringConverter)
     public mimeType: string = UNDEFINED
 
     @Column("size", NumberConverter)
     public size: number = UNDEFINED
 
-    @FacetId(Facets.size.name, Facets.size.index)
-    @Internal("lsi", StringConverter)
+    @Internal()
+    @Exposed(false)
+    @FacetId("LSI1")
     public sizeIndex: string = UNDEFINED // "file/{mimetype}/{filename}"
 
     @Callback()

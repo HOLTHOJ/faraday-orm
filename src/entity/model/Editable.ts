@@ -16,11 +16,11 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Callback, CallbackOperation, Internal} from "..";
+import {Callback, CallbackOperation, Column, Internal} from "..";
 import {DateNumberConverter, StringConverter} from "../../converter";
 import {UNDEFINED} from "../../util";
 import {Versionable, VersionableOptions} from "./Versionable";
-import {EntityManagerConfig} from "../manager/EntityManager";
+import {SessionConfig} from "../manager/SessionManager";
 
 /** */
 export type EditableOptions = VersionableOptions & {}
@@ -35,16 +35,20 @@ export type EditableOptions = VersionableOptions & {}
  */
 export abstract class Editable extends Versionable {
 
-    @Internal("$ct", DateNumberConverter, true)
+    @Internal()
+    @Column("$ct", DateNumberConverter, true)
     public _createTime: Date = UNDEFINED;
 
-    @Internal("$cu", StringConverter, true)
+    @Internal()
+    @Column("$cu", StringConverter, true)
     public _createUser: string = UNDEFINED;
 
-    @Internal("$ut", DateNumberConverter, true)
+    @Internal()
+    @Column("$ut", DateNumberConverter, true)
     public _updateTime: Date = UNDEFINED;
 
-    @Internal("$uu", StringConverter, true)
+    @Internal()
+    @Column("$uu", StringConverter, true)
     public _updateUser: string = UNDEFINED;
 
     constructor(options ?: EditableOptions) {
@@ -52,15 +56,16 @@ export abstract class Editable extends Versionable {
     }
 
     @Callback()
-    updateEditableInternalFields(operation: CallbackOperation, config: EntityManagerConfig): void {
+    updateEditableInternalFields(operation: CallbackOperation, config: SessionConfig): void {
         const now = new Date();
         switch (operation) {
             case "INSERT":
                 this._createTime = now;
-                this._createUser = config.userName;
+                this._createUser = config.user;
+            // Fallthrough on purpose
             case "UPDATE":
                 this._updateTime = now;
-                this._updateUser = config.userName;
+                this._updateUser = config.user;
         }
     }
 

@@ -22,16 +22,17 @@ import {DBFileView} from "./view/DBFileView";
 import {DBFolderView} from "./view/DBFolderView";
 import {DBExplorerByNameView} from "./view/explorer/DBExplorerByNameView";
 import {DBExplorerByTypeView} from "./view/explorer/DBExplorerByTypeView";
+import {EntityManagerFactory} from "../../src/entity/manager/EntityManagerFactory";
 
 describe("test/filesystem", () => {
 
-    EntityManager.GLOBAL_CONFIG = {
+    EntityManagerFactory.GLOBAL_CONFIG = {
         userName: "owner",
         tableName: "faraday-test",
     }
 
     test("view/file", async () => {
-        const entityManager = EntityManager.get();
+        const entityManager = EntityManagerFactory.load();
         const viewManager = ViewManager.get(entityManager);
 
         const view = ViewManager.loadView(DBFileView);
@@ -44,7 +45,7 @@ describe("test/filesystem", () => {
     })
 
     test("view/folder", async () => {
-        const entityManager = EntityManager.get();
+        const entityManager = EntityManagerFactory.load();
         const viewManager = ViewManager.get(entityManager);
 
         const view = ViewManager.loadView(DBFolderView);
@@ -57,7 +58,7 @@ describe("test/filesystem", () => {
     })
 
     test("view/explorer/name/all", async () => {
-        const entityManager = EntityManager.get();
+        const entityManager = EntityManagerFactory.load();
         const viewManager = ViewManager.get(entityManager);
 
         const view = ViewManager.loadView(DBExplorerByNameView);
@@ -70,7 +71,7 @@ describe("test/filesystem", () => {
     })
 
     test("view/explorer/name?test-file", async () => {
-        const entityManager = EntityManager.get();
+        const entityManager = EntityManagerFactory.load();
         const viewManager = ViewManager.get(entityManager);
 
         const view = ViewManager.loadView(DBExplorerByNameView);
@@ -85,7 +86,7 @@ describe("test/filesystem", () => {
 
 
     test("view/explorer/type/all", async () => {
-        const entityManager = EntityManager.get();
+        const entityManager = EntityManagerFactory.load();
         const viewManager = ViewManager.get(entityManager);
 
         const view = ViewManager.loadView(DBExplorerByTypeView);

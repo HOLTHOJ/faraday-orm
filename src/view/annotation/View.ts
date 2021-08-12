@@ -22,8 +22,9 @@ import {VIEW_COLUMN_DEFS, ViewColumnDef} from "./ViewColumn";
 import {one, single} from "../../util/Req";
 import {Class} from "../../util";
 import {TransactionManager} from "../../entity/manager/TransactionManager";
-import {EntityType} from "../../entity";
+import {EntityDef} from "../../entity";
 import {ViewTransactionFactory} from "../manager/ViewCallback";
+import {DynamoDB} from "aws-sdk";
 
 /**
  * The index type as defined on the DynamoDB table index.
@@ -32,13 +33,13 @@ import {ViewTransactionFactory} from "../manager/ViewCallback";
 export type ViewIndexType = "default" | "LSI" | "GSI";
 
 /** The projected attributes setting as defined on the DynamoDB table index. */
-export type ViewProjectedType = "PROJECTED_ALL" | "KEYS_ONLY" | "CUSTOM" ;
+export type ViewProjectedType = DynamoDB.ProjectionType;
 
 /** The view definitions for each class. */
 export const VIEW_DEF = new Map<Function, ViewType>();
 
 /** A reverse mapping from the View Source entity type to their owning View Type. */
-export const VIEW_SOURCE_ENTITIES = new Map<EntityType, ViewType[]>();
+export const VIEW_SOURCE_ENTITIES = new Map<EntityDef, ViewType[]>();
 
 /** A view definition which configures an object into a View. */
 export type ViewType<V extends object = object> = {
@@ -89,17 +90,32 @@ export type ViewType<V extends object = object> = {
 
 };
 
+/**
+ * Creates a View on the table itself (not on an index).
+ *
+ * Make sure that the @ViewId column names correspond to the PK and SK column names,
+ * otherwise the queries will throw a DynamoDB exception.
+ *
+ * @param indexType Default
+ */
+export function View(indexType: "default"): (ctor: Class) => any;
 
 /**
+ * Creates a View on the given index name.
  *
- * @param indexType
- * @param indexName
- * @param pk
- * @param projected The projected attributes definition of the index.
- * @constructor
+ * @param indexType The type of index (LSI/GSI) as defined on the table.
+ *                  This value is not used during querying or loading,
+ *                  but will be used when validating the table definition with the model.
+ * @param indexName The name of the index. Will be used when querying.
+ * @param projected The projected attributes as defined on the table.
+ *                  This value will be used to validate the table definition,
+ *                  but also to determine which values to return as the View's results.
  */
-export function View(indexType: "default"): (ctor: { new(): any }) => any;
-export function View(indexType: ViewIndexType, indexName: string, projected?: ViewProjectedType): (ctor: { new(): any }) => any;
+export function View(indexType: ViewIndexType, indexName: string, projected?: ViewProjectedType): (ctor: Class) => any;
+
+/**
+ * @internal Implementation of the two public overloaded methods.
+ */
 export function View(indexType: ViewIndexType, indexName?: string, projected: ViewProjectedType = "PROJECTED_ALL") {
     return (ctor: { new(...args: any[]): {} }) => {
         const i = VIEW_IDS.get(ctor) || [];

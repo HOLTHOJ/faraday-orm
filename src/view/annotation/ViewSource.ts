@@ -16,16 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {EntityManager, EntityType} from "../../entity";
+import {EntityDef} from "../../entity";
 import {Class} from "../../util";
 import {KeyPath} from "../../util/KeyPath";
+import {ENTITY_DEF} from "../../entity/annotation/Entity";
+import {req} from "../../util/Req";
 
 /**
  * The query definition.
  */
 export type ViewSourceDef<T extends object = any> = {
     propName: string,
-    entityType: EntityType<T>,
+    entityType: EntityDef<T>,
     keyPath: KeyPath,
     // cond?: (elt: T) => boolean,
 };
@@ -47,7 +49,7 @@ export function ViewSource<S extends object>(entityCtor: Class<S>, keyPath: KeyP
     return (target: any, propertyKey: string) => {
 
         // Lookup entityType; type needs to be loaded first.
-        const entityType = EntityManager.getEntityType(entityCtor);
+        const entityType = req(ENTITY_DEF.get(entityCtor)) as EntityDef<S>;
 
         const viewEntityDef: ViewSourceDef<S> = {
             propName: propertyKey,

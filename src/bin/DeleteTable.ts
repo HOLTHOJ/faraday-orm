@@ -16,21 +16,10 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Entity, Id} from "../../../src/entity";
-import {UNDEFINED} from "../../../src/util";
-import {Versionable} from "../../../src/entity/model/Versionable";
+import {EntityManagerConfig} from "../entity/manager/EntityManager";
+import {DynamoDB} from "aws-sdk";
 
-@Entity("folder", {pkPath: ":account/:directory", skPath: "folder/:folderName"})
-export default class DBFolder extends Versionable {
-
-    public account: string = UNDEFINED
-
-    public directory: string = UNDEFINED
-
-    @Id("PK")
-    public parent: string = UNDEFINED
-
-    @Id("SK")
-    public folderName: string = UNDEFINED
-
+export default async function (config: EntityManagerConfig) {
+    const dynamo = new DynamoDB();
+    await dynamo.deleteTable({TableName: config.tableName}).promise();
 }

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Callback, CallbackOperation, Internal} from "..";
+import {Callback, CallbackOperation, Column, Internal} from "..";
 import {UNDEFINED} from "../../util";
 import {NumberConverter} from "../../converter";
 import {Keyable, KeyableOptions} from "./Keyable";
@@ -41,7 +41,7 @@ export type VersionableOptions = KeyableOptions & {
  * for UPDATE operations.
  *
  * This model class makes use of the @Internal column functionality to enforce optimistic locking. i.e. the _version
- * column will always be included as an "Expected" parameter in the DynamodDB requests so you can only update a record
+ * column will always be included as an "Expected" parameter in the DynamoDB requests so you can only update a record
  * if your version matches the one in the database.
  *
  * @see Internal
@@ -57,7 +57,8 @@ export abstract class Versionable extends Keyable {
         this.versionIncrement = def(options?.versionIncrement, 1);
     }
 
-    @Internal("$v", NumberConverter, true)
+    @Internal()
+    @Column("$v", NumberConverter, true)
     public _version: number = UNDEFINED;
 
     @Callback()
@@ -75,7 +76,7 @@ export abstract class Versionable extends Keyable {
     @Callback()
     validateVersion(action: CallbackOperation) {
         if (action === "DELETE" && (Number.isNaN(Number(this._version)) || Number(this._version) < this.versionNew)) {
-            throw new Error(`Require a version.`);
+            throw new Error(`Deleting a Versionable entity requires a version.`);
         }
     }
 }

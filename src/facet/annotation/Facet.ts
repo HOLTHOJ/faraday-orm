@@ -20,7 +20,7 @@ import {DynamoDB} from "aws-sdk";
 import {PathGenerator} from "../../util/KeyPath";
 import {Class} from "../../util";
 import {single} from "../../util/Req";
-import {FACET_IDS, FacetIdDef} from "./FacetId";
+import {FACET_IDS, FacetIdDef, FacetIdType} from "./FacetId";
 
 /** The facet query operation */
 export type FacetQueryOperation = DynamoDB.ComparisonOperator;
@@ -37,7 +37,7 @@ export const DEFAULT: unique symbol = Symbol("default-index");
 /** The full facet type details. */
 export type FacetType<F extends object = any> = {
     ctor: Class<F>,
-    indexName: string | typeof DEFAULT,
+    indexName: FacetIdType | typeof DEFAULT,
     queryName: string,
     operation: FacetQueryOperation,
     path?: string,
@@ -57,9 +57,9 @@ export type FacetType<F extends object = any> = {
  * @param path
  * @param pathGenerator
  */
-export function Facet(index: string | typeof DEFAULT, queryName: string, operation: FacetQueryOperation): (ctor: Class) => void;
-export function Facet(index: string | typeof DEFAULT, queryName: string, operation: FacetQueryOperation, path: string, pathGenerator?: PathGenerator): (ctor: Class) => void;
-export function Facet(index: string | typeof DEFAULT, queryName: string, operation: FacetQueryOperation, path?: string, pathGenerator?: PathGenerator): (ctor: Class) => void {
+export function Facet(index: FacetIdType | typeof DEFAULT, queryName: string, operation: FacetQueryOperation): (ctor: Class) => void;
+export function Facet(index: FacetIdType | typeof DEFAULT, queryName: string, operation: FacetQueryOperation, path: string, pathGenerator?: PathGenerator): (ctor: Class) => void;
+export function Facet(index: FacetIdType | typeof DEFAULT, queryName: string, operation: FacetQueryOperation, path?: string, pathGenerator?: PathGenerator): (ctor: Class) => void {
     return (ctor) => {
 
         const facetType: FacetType = {
@@ -80,7 +80,7 @@ export function Facet(index: string | typeof DEFAULT, queryName: string, operati
                 proto = Object.getPrototypeOf(proto);
             }
 
-            facetType.lsi = single(ids.filter(elt => elt.indexName === index),
+            facetType.lsi = single(ids.filter(elt => elt.facetIdType === index),
                 `Illegal SK Id Column configuration.`, true);
         }
 

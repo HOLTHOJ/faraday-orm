@@ -16,21 +16,21 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Entity, Id} from "../../../src/entity";
-import {UNDEFINED} from "../../../src/util";
-import {Versionable} from "../../../src/entity/model/Versionable";
+import ValidateTable from "../../src/bin/ValidateTable";
+import {loadTableConfig} from "../../src/entity/manager/TableConfig";
+import {PathToRegexpPathGenerator} from "../../src/util/PathToRegexpPathGenerator";
+import {EntityManagerFactory} from "../../src/entity/manager/EntityManagerFactory";
 
-@Entity("folder", {pkPath: ":account/:directory", skPath: "folder/:folderName"})
-export default class DBFolder extends Versionable {
+describe("test/filesystem", () => {
 
-    public account: string = UNDEFINED
+    test("GET root/test-file", async () => {
+        await ValidateTable(EntityManagerFactory.load({
+            userName: "su",
+            tableName: "faraday-test",
+            tableConfig: loadTableConfig("./test/filesystem/faraday.orm.json", file => require(file).default),
+            logLevel: "FULL",
+            pathGenerator: new PathToRegexpPathGenerator(),
+        }))
+    })
 
-    public directory: string = UNDEFINED
-
-    @Id("PK")
-    public parent: string = UNDEFINED
-
-    @Id("SK")
-    public folderName: string = UNDEFINED
-
-}
+})
