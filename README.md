@@ -43,7 +43,7 @@ the `| undefined` union type to each field.
 The full version of this example can be found in the test cases: [DBFile.ts](test/filesystem/model/DBFile.ts).
 
 ```typescript
-@Entity("fs/file", {pkPath: ":account/:directory", skPath: ":fileName"})
+@Entity("fs/file", {pkPath: ":account/:directory", skPath: "file/:fileName"})
 export class DBFile extends Editable {
 
     @Exposed()
