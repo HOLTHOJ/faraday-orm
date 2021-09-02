@@ -22,24 +22,36 @@ import {ViewProxy} from "./ViewProxy";
 import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {createViewProxy} from "./ViewProxyImpl";
 import {VIEW_DEF, ViewType} from "../annotation/View";
-import {EntityManager, EntityType} from "../../entity";
 import {Class} from "../../util";
 import {ConditionMapper} from "../../util/mapper/ConditionMapper";
-import {QueryInput} from "../../entity/manager/TransactionCallback";
+import {QueryInput} from "../../manager/TransactionCallback";
 import {ResultSet} from "../../util/ResultSet";
+import {FacetIdType} from "../../annotation/FacetId";
+import {FacetType} from "../../manager/FacetType";
+import {EntityType} from "../../manager/EntityType";
+import {EntityManagerImpl} from "../../manager/EntityManagerImpl";
+
+export type ViewManagerConfig = {
+
+    readonly facets: Map<EntityType, Map<FacetIdType, FacetType[]>>
+}
 
 /**
  * View manager.
+ *
+ * Views are loaded and managed by a separate ViewManager;
+ *  - views cannot be loaded until after all entity types are loaded
  */
 export class ViewManager {
 
-    public readonly entityManager: EntityManager;
+    /** The primary entity manager. */
+    public readonly entityManager: EntityManagerImpl;
 
-    private constructor(entityManager: EntityManager) {
+    private constructor(entityManager: EntityManagerImpl) {
         this.entityManager = entityManager;
     }
 
-    static get(entityManager: EntityManager) {
+    static get(entityManager: EntityManagerImpl) {
         return new ViewManager(entityManager);
     }
 

@@ -18,7 +18,7 @@
 
 import {Entity, Id} from "../../../src/entity";
 import {UNDEFINED} from "../../../src/util";
-import {Versionable} from "../../../src/entity/model/Versionable";
+import {Versionable} from "../../../src/entity/Versionable";
 
 @Entity("folder", {pkPath: ":account/:directory", skPath: "folder/:folderName"})
 export default class DBFolder extends Versionable {

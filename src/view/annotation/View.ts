@@ -21,7 +21,7 @@ import {VIEW_SOURCE_DEF, ViewSourceDef} from "./ViewSource";
 import {VIEW_COLUMN_DEFS, ViewColumnDef} from "./ViewColumn";
 import {one, single} from "../../util/Req";
 import {Class} from "../../util";
-import {TransactionManager} from "../../entity/manager/TransactionManager";
+import {TransactionManager} from "../../manager/TransactionManager";
 import {EntityDef} from "../../entity";
 import {ViewTransactionFactory} from "../manager/ViewCallback";
 import {DynamoDB} from "aws-sdk";

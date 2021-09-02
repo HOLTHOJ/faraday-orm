@@ -16,9 +16,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Callback, CallbackOperation} from "..";
-import {UNDEFINED} from "../../util";
-import {def} from "../../util/Req";
+import {Callback, CallbackOperation} from "./index";
+import {UNDEFINED} from "../util";
+import {def} from "../util/Req";
 
 /** */
 export type KeyGenerator = () => string;

@@ -16,21 +16,18 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-export {Callback} from "./annotation/Callback";
-export {CallbackDef} from "./annotation/Callback";
-export {CallbackOperation} from "./annotation/Callback";
+export {Callback} from "../annotation/Callback";
+export {CallbackDef} from "../annotation/Callback";
+export {CallbackOperation} from "../annotation/Callback";
 
-export {Column} from "./annotation/Column";
-export {ColumnDef} from "./annotation/Column";
+export {Column} from "../annotation/Column";
+export {ColumnDef} from "../annotation/Column";
 
-export {Entity} from "./annotation/Entity";
-export {EntityDef} from "./annotation/Entity";
-export {EntityType} from "./annotation/Entity";
+export {Entity} from "../annotation/Entity";
+export {EntityDef} from "../annotation/Entity";
 
-export {Id} from "./annotation/Id";
-export {IdType} from "./annotation/Id";
-export {IdDef} from "./annotation/Id";
+export {Id} from "../annotation/Id";
+export {IdType} from "../annotation/Id";
+export {IdDef} from "../annotation/Id";
 
-export {Internal} from "./annotation/Internal";
-
-export {EntityManager} from "./manager/EntityManager";
+export {Internal} from "../annotation/Internal";

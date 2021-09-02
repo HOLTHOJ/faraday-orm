@@ -16,22 +16,16 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import ValidateTable from "../../src/bin/ValidateTable";
-import {loadTableConfig} from "../../src/manager/TableConfig";
-import {PathToRegexpPathGenerator} from "../../src/util/PathToRegexpPathGenerator";
-import {EntityManagerFactory} from "../../src/EntityManagerFactory";
-import {EntityManagerImpl} from "../../src/manager/EntityManagerImpl";
+import {FacetIdDef} from "../annotation/FacetId";
+import {FacetDef} from "../annotation/Facet";
 
-describe("test/filesystem", () => {
+/** The full facet type details. */
+export type FacetType<F extends object = any> = {
 
-    test("GET root/test-file", async () => {
-        await ValidateTable(EntityManagerFactory.load({
-            userName: "su",
-            tableName: "faraday-test",
-            tableConfig: loadTableConfig("./test/filesystem/faraday.orm.json", file => require(file).default),
-            logLevel: "FULL",
-            pathGenerator: new PathToRegexpPathGenerator(),
-        }) as EntityManagerImpl)
-    })
+    /** The facet class definition. */
+    readonly def: FacetDef<F>,
 
-})
+    readonly lsi?: FacetIdDef,
+
+    readonly indexName ?: string,
+};

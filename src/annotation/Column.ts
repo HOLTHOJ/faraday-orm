@@ -16,7 +16,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Converter} from "../../converter";
+import {Converter} from "../converter";
 
 /**
  * The definition of a database column defined on an Entity class.
@@ -40,8 +40,6 @@ export type ColumnDef<T = any> = {
      * using callbacks or by defining a default value.
      */
     internal: boolean,
-
-    exposed: boolean,
 
     /** The default value to use if the value is not set. */
     defaultValue?: () => T
@@ -68,7 +66,6 @@ export function Column<T>(columnName: string, columnConverter: Converter<T>, req
             converter: columnConverter,
             required: !!required,
             internal: false,
-            exposed: true,
             defaultValue: defaultValue
         };
 

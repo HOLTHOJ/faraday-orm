@@ -16,8 +16,6 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {EntityManager} from "../../entity";
-import {EntityProxy} from "../../entity/manager/EntityProxy";
 import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {ViewManager} from "./ViewManager";
 import {ViewIdColumnDef} from "..";
@@ -27,13 +25,14 @@ import {
     QueryInput,
     TransactionCallback,
     TransactionCallbackChain
-} from "../../entity/manager/TransactionCallback";
+} from "../../manager/TransactionCallback";
 import {DynamoDB} from "aws-sdk";
-import {EntityManagerConfig} from "../../entity/manager/EntityManager";
 import {ViewProxy} from "./ViewProxy";
 import {VIEW_SOURCE_ENTITIES} from "../annotation/View";
-import {TransactionFactory} from "../../entity/manager/TransactionFactory";
+import {TransactionFactory} from "../../manager/TransactionFactory";
 import {req} from "../../util/Req";
+import {ManagedEntity} from "../../manager/ManagedEntity";
+import {EntityManagerConfig} from "../../manager/EntityManagerImpl";
 
 export class ViewTransactionFactory implements TransactionFactory {
 
@@ -59,27 +58,27 @@ class ViewCallback implements TransactionCallback {
         return chain.query(input);
     }
 
-    deleteItem<E extends object>(chain: TransactionCallbackChain, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput> {
+    deleteItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput> {
         return chain.deleteItem(record, item, expected);
     }
 
-    putItem<E extends object>(chain: TransactionCallbackChain, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
+    putItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
         this.setViewIndexColumns(record, item, expected);
         return chain.putItem(record, item, expected);
     }
 
-    updateItem<E extends object>(chain: TransactionCallbackChain, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
+    updateItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
         this.setViewIndexColumns(record, item, expected);
         return chain.updateItem(record, item, expected);
     }
 
-    private setViewIndexColumns<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper) {
-        const entityType = EntityManager.internal(record).entityType;
+    private setViewIndexColumns<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper) {
+        const entityType = record.entityType;
         const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType.def) || [];
         entityViewTypes.forEach(elt => {
             const view = ViewManager.loadView(elt);
             const viewSource = req(view.getViewSource(record.entityType.def));
-            if (view.loadSource(viewSource, record, true, this.session.pathGenerator)) {
+            if (view.loadSource(viewSource, record.entity, true, this.session.pathGenerator)) {
                 // Source is loaded and the keys are set..
                 ViewCallback.addViewIdsToItem(view, record, item);
             } else {
@@ -92,7 +91,7 @@ class ViewCallback implements TransactionCallback {
         });
     }
 
-    private static addViewIdsToItem(view: ViewProxy, record: EntityProxy<{}>, item: AttributeMapper) {
+    private static addViewIdsToItem(view: ViewProxy, record: ManagedEntity<{}>, item: AttributeMapper) {
         view.forEachId((id: ViewIdColumnDef, value: any, valueIsSet: boolean) => {
             if (item.getValue(id) !== value) {
                 record.forEachId(recordId => {

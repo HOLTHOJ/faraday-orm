@@ -1,6 +1,6 @@
 import {DynamoDB} from "aws-sdk";
-import {TransactionManager} from "../entity/manager/TransactionManager";
-import {QueryInput} from "../entity/manager/TransactionCallback";
+import {TransactionManager} from "../manager/TransactionManager";
+import {QueryInput} from "../manager/TransactionCallback";
 import {AttributeMapper} from "./mapper/AttributeMapper";
 
 export class ResultSet<T extends object> implements AsyncIterable<T> {

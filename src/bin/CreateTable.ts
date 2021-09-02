@@ -17,16 +17,16 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {EntityManager, EntityManagerConfig} from "../entity/manager/EntityManager";
 import {req} from "../util/Req";
+import {EntityManagerConfig} from "../manager/EntityManagerImpl";
 
-export default async function (em: EntityManager) {
+export default async function (config: EntityManagerConfig) {
 
     const dynamo = new DynamoDB();
-    const tableDef = req(em.config.tableDef, `Table def not found.`)
+    const tableDef = req(config.tableDef, `Table def not found.`)
 
     const createTableInput: DynamoDB.Types.CreateTableInput = {
-        TableName: em.config.tableName,
+        TableName: config.tableName,
         AttributeDefinitions: [
             {AttributeName: tableDef.ids["PK"], AttributeType: "S"},
         ],

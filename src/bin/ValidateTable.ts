@@ -17,25 +17,24 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {EntityManager} from "../entity/manager/EntityManager";
 import {eq, req, single} from "../util/Req";
+import {EntityManagerImpl} from "../manager/EntityManagerImpl";
 
 /**
  * Validates the immutable table configuration.
  *
- * @param em
+ * @param config
  */
-export default async function (em: EntityManager) {
+export default async function (config: EntityManagerImpl) {
 
     const dynamo = new DynamoDB();
-    const tableDefinition = await dynamo.describeTable({
-        TableName: req(em.config.tableName, `Missing table name.`)
-    }).promise()
+    const tableName = req(config.config.tableName, `Missing table name.`);
+    const tableDefinition = await dynamo.describeTable({TableName: tableName}).promise()
 
     console.log("Table description", JSON.stringify(tableDefinition));
 
     const table = req(tableDefinition.Table, `Table not found.`)
-    const tableDef = req(em.config.tableDef, `Table def not found.`)
+    const tableDef = req(config.config.tableDef, `Table def not found.`)
 
     const keySchema = req(table.KeySchema, `Table key schema not found.`);
     eq(keySchema.length, Object.keys(req(tableDef.ids)).length, `Table key schema is invalid.`);

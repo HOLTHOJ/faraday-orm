@@ -16,8 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {EntityManagerConfig} from "../entity/manager/EntityManager";
 import {DynamoDB} from "aws-sdk";
+import {EntityManagerConfig} from "../manager/EntityManagerImpl";
 
 export default async function (config: EntityManagerConfig) {
     const dynamo = new DynamoDB();

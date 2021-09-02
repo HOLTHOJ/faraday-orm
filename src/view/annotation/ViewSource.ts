@@ -19,7 +19,7 @@
 import {EntityDef} from "../../entity";
 import {Class} from "../../util";
 import {KeyPath} from "../../util/KeyPath";
-import {ENTITY_DEF} from "../../entity/annotation/Entity";
+import {ENTITY_DEF} from "../../annotation/Entity";
 import {req} from "../../util/Req";
 
 /**

@@ -17,16 +17,15 @@
  */
 
 import {DynamoDB} from "aws-sdk";
-import {PathGenerator} from "../../util/KeyPath";
-import {Class} from "../../util";
-import {single} from "../../util/Req";
-import {FACET_IDS, FacetIdDef, FacetIdType} from "./FacetId";
+import {PathGenerator} from "../util/KeyPath";
+import {Class} from "../util";
+import {FACET_IDS, FacetIdType} from "./FacetId";
 
 /** The facet query operation */
 export type FacetQueryOperation = DynamoDB.ComparisonOperator;
 
 /** @internal Repository of all facets and the constructor function on which they are defined. */
-export const FACET_REPO = new Map<Function, Array<Readonly<FacetType>>>();
+export const FACET_DEF = new Map<Function, Array<Readonly<FacetDef>>>();
 
 /**
  * The default index. This will query the table's PK & SK without an index.
@@ -35,14 +34,14 @@ export const FACET_REPO = new Map<Function, Array<Readonly<FacetType>>>();
 export const DEFAULT: unique symbol = Symbol("default-index");
 
 /** The full facet type details. */
-export type FacetType<F extends object = any> = {
+export type FacetDef<F extends object = any> = {
     ctor: Class<F>,
     indexName: FacetIdType | typeof DEFAULT,
     queryName: string,
     operation: FacetQueryOperation,
     path?: string,
     pathGenerator?: PathGenerator
-    lsi?: FacetIdDef,
+    // lsi?: FacetIdDef,
 };
 
 /**
@@ -62,7 +61,7 @@ export function Facet(index: FacetIdType | typeof DEFAULT, queryName: string, op
 export function Facet(index: FacetIdType | typeof DEFAULT, queryName: string, operation: FacetQueryOperation, path?: string, pathGenerator?: PathGenerator): (ctor: Class) => void {
     return (ctor) => {
 
-        const facetType: FacetType = {
+        const facetType: FacetDef = {
             ctor: ctor,
             indexName: index,
             queryName: queryName,
@@ -80,14 +79,14 @@ export function Facet(index: FacetIdType | typeof DEFAULT, queryName: string, op
                 proto = Object.getPrototypeOf(proto);
             }
 
-            facetType.lsi = single(ids.filter(elt => elt.facetIdType === index),
-                `Illegal SK Id Column configuration.`, true);
+            // facetType.lsi = single(ids.filter(elt => elt.facetIdType === index),
+            //     `Illegal SK Id Column configuration.`, true);
         }
 
-        if (FACET_REPO.has(ctor)) {
-            FACET_REPO.get(ctor)!.push(facetType);
+        if (FACET_DEF.has(ctor)) {
+            FACET_DEF.get(ctor)!.push(facetType);
         } else {
-            FACET_REPO.set(ctor, [facetType]);
+            FACET_DEF.set(ctor, [facetType]);
         }
     }
 }

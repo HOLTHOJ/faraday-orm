@@ -16,13 +16,13 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {EntityManager} from "../../src/entity";
 import {ViewManager} from "../../src/view";
 import {DBFileView} from "./view/DBFileView";
 import {DBFolderView} from "./view/DBFolderView";
 import {DBExplorerByNameView} from "./view/explorer/DBExplorerByNameView";
 import {DBExplorerByTypeView} from "./view/explorer/DBExplorerByTypeView";
-import {EntityManagerFactory} from "../../src/entity/manager/EntityManagerFactory";
+import {EntityManagerFactory} from "../../src/EntityManagerFactory";
+import {EntityManagerImpl} from "../../src/manager/EntityManagerImpl";
 
 describe("test/filesystem", () => {
 
@@ -33,7 +33,7 @@ describe("test/filesystem", () => {
 
     test("view/file", async () => {
         const entityManager = EntityManagerFactory.load();
-        const viewManager = ViewManager.get(entityManager);
+        const viewManager = ViewManager.get(entityManager as EntityManagerImpl);
 
         const view = ViewManager.loadView(DBFileView);
         view.account = "acme";
@@ -46,7 +46,7 @@ describe("test/filesystem", () => {
 
     test("view/folder", async () => {
         const entityManager = EntityManagerFactory.load();
-        const viewManager = ViewManager.get(entityManager);
+        const viewManager = ViewManager.get(entityManager as EntityManagerImpl);
 
         const view = ViewManager.loadView(DBFolderView);
         view.account = "acme";
@@ -59,7 +59,7 @@ describe("test/filesystem", () => {
 
     test("view/explorer/name/all", async () => {
         const entityManager = EntityManagerFactory.load();
-        const viewManager = ViewManager.get(entityManager);
+        const viewManager = ViewManager.get(entityManager as EntityManagerImpl);
 
         const view = ViewManager.loadView(DBExplorerByNameView);
         view.account = "acme";
@@ -72,7 +72,7 @@ describe("test/filesystem", () => {
 
     test("view/explorer/name?test-file", async () => {
         const entityManager = EntityManagerFactory.load();
-        const viewManager = ViewManager.get(entityManager);
+        const viewManager = ViewManager.get(entityManager as EntityManagerImpl);
 
         const view = ViewManager.loadView(DBExplorerByNameView);
         view.account = "acme";
@@ -87,7 +87,7 @@ describe("test/filesystem", () => {
 
     test("view/explorer/type/all", async () => {
         const entityManager = EntityManagerFactory.load();
-        const viewManager = ViewManager.get(entityManager);
+        const viewManager = ViewManager.get(entityManager as EntityManagerImpl);
 
         const view = ViewManager.loadView(DBExplorerByTypeView);
         view.account = "acme";

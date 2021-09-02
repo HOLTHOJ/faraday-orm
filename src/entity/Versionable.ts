@@ -16,11 +16,11 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Callback, CallbackOperation, Column, Internal} from "..";
-import {UNDEFINED} from "../../util";
-import {NumberConverter} from "../../converter";
+import {Callback, CallbackOperation, Column, Internal} from "./index";
+import {UNDEFINED} from "../util";
+import {NumberConverter} from "../converter";
 import {Keyable, KeyableOptions} from "./Keyable";
-import {def} from "../../util/Req";
+import {def} from "../util/Req";
 
 /** */
 export type VersionableOptions = KeyableOptions & {

@@ -17,15 +17,18 @@
  */
 
 
-import {Class} from "../../util";
-import {one, req, single, unique} from "../../util/Req";
-import {ENTITY_DEF, EntityDef, EntityType} from "../annotation/Entity";
+import {Class} from "../util";
+import {one, req, single, unique} from "../util/Req";
+import {ENTITY_DEF, EntityDef} from "../annotation/Entity";
 import {ENTITY_COLS} from "../annotation/Column";
 import {ENTITY_IDS} from "../annotation/Id";
 import {ENTITY_INTERNAL} from "../annotation/Internal";
 import {ENTITY_CALLBACKS} from "../annotation/Callback";
 import {TableDef} from "./TableConfig";
 import {ENTITY_EXPOSED} from "../annotation/Exposed";
+import {EntityType} from "./EntityType";
+import {FACET_DEF} from "../annotation/Facet";
+import {loadFacet} from "./FacetTypeLoader";
 
 export function loadEntityDefs(tableDef: TableDef): Map<string, EntityType> {
     return tableDef.entities.reduce((map, elt) => {
@@ -34,18 +37,16 @@ export function loadEntityDefs(tableDef: TableDef): Map<string, EntityType> {
         if (map.has(entityDef.name))
             throw new Error(`Duplicate entity type ${entityDef.name}.`);
 
-        return map.set(entityDef.name, loadEntity(entityDef, tableDef, elt));
+        const entityType = loadEntity(entityDef, tableDef, elt);
+
+        const facetDefs = FACET_DEF.get(elt);
+        const facets = facetDefs?.map(facetDef => loadFacet(entityDef, facetDef, tableDef, elt))
+
+        return map.set(entityDef.name, {...entityType, facets: facets});
     }, new Map<string, EntityType>())
 }
 
 export function loadEntity<E extends object>(entityDef: EntityDef, tableDef: TableDef, ctor: Class<E>): EntityType {
-    // let tj = Object.getOwnPropertyDescriptor(ctor.prototype, "toJSON");
-    // let instanceProto = Object.getPrototypeOf(ctor.prototype);
-    // while (typeof tj === "undefined" && instanceProto) {
-    //     tj = Object.getOwnPropertyDescriptor(instanceProto, "toJSON");
-    //     instanceProto = Object.getPrototypeOf(instanceProto);
-    // }
-
     const cols = ENTITY_COLS.get(ctor) || [];
     const ids = ENTITY_IDS.get(ctor) || [];
     const int = ENTITY_INTERNAL.get(ctor) || [];
@@ -66,9 +67,11 @@ export function loadEntity<E extends object>(entityDef: EntityDef, tableDef: Tab
     }
 
     const pkId = single(ids.filter(elt => elt.idType === "PK"), `Missing required PK Id Column.`);
+    const pk = {...pkId, name: tableDef.ids["PK"], exposed: true, internal: false, required: true};
     ex.push({propName: pkId.propName, exposed: true})
 
     const skId = one(ids.filter(elt => elt.idType === "SK"), `Illegal SK Id Column configuration.`);
+    const sk = skId && {...skId, name: tableDef.ids["SK"], exposed: true, internal: false, required: true};
     if (skId) ex.push({propName: skId.propName, exposed: true})
 
     const entityCols = unique(cols, col => col.name, true, `Duplicate column names not allowed.`);
@@ -76,20 +79,37 @@ export function loadEntity<E extends object>(entityDef: EntityDef, tableDef: Tab
         // Set the internal flag
         col.internal = int.findIndex(elt => elt.propName === col.propName) >= 0
 
-        // Default to exposed
+        // Default columns to be exposed
         if (ex.findIndex(elt => elt.propName === col.propName) < 0)
             ex.push({propName: col.propName, exposed: true})
     })
+
+    // Enhance classes with ToJSON override.
+    ctor.prototype.toJSON = function(key ?: string) {
+        const json = {} as any
+
+        ex.forEach(elt => {
+            if (elt.exposed) {
+                // @ts-ignore
+                json[elt.propName] = this[elt.propName]
+            }
+        })
+
+        if (entityDef.options.exportTypeName) {
+            json["_type"] = entityDef.name;
+        }
+
+        return json;
+    }
 
     return {
         def: entityDef,
         cols: entityCols,
         exposed: ex,
         keyPath: entityDef.keyPath,
-        pk: {...pkId, name: tableDef.ids["PK"], exposed: true, internal: false, required: true},
-        sk: skId && {...skId, name: tableDef.ids["SK"], exposed: true, internal: false, required: true},
+        pk: pk,
+        sk: sk,
         // embedded: e,
         cbs: cb.reverse(),
-        // toJSON: tj,
     };
 }

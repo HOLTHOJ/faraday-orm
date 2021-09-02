@@ -16,7 +16,6 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {EntityProxy} from "../../entity/manager/EntityProxy";
 import {AttributeMapper} from "../../util/mapper/AttributeMapper";
 import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
 import {
@@ -24,10 +23,11 @@ import {
     QueryInput,
     TransactionCallback,
     TransactionCallbackChain
-} from "../../entity/manager/TransactionCallback";
+} from "../../manager/TransactionCallback";
 import {DynamoDB} from "aws-sdk";
-import {TransactionFactory} from "../../entity/manager/TransactionFactory";
-import {EntityManagerConfig} from "../../entity/manager/EntityManager";
+import {TransactionFactory} from "../../manager/TransactionFactory";
+import {ManagedEntity} from "../../manager/ManagedEntity";
+import {EntityManagerConfig} from "../../manager/EntityManagerImpl";
 
 export class FacetTransactionFactory implements TransactionFactory {
 
@@ -53,21 +53,21 @@ class FacetCallback implements TransactionCallback {
         return chain.query(input);
     }
 
-    deleteItem<E extends object>(chain: TransactionCallbackChain, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput> {
+    deleteItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput> {
         return chain.deleteItem(record, item, expected);
     }
 
-    putItem<E extends object>(chain: TransactionCallbackChain, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
+    putItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
         this.setFacetIndexColumns(record, item, expected);
         return chain.putItem(record, item, expected);
     }
 
-    updateItem<E extends object>(chain: TransactionCallbackChain, record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
+    updateItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
         this.setFacetIndexColumns(record, item, expected);
         return chain.updateItem(record, item, expected);
     }
 
-    private setFacetIndexColumns<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper) {
+    private setFacetIndexColumns<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper) {
         // const facetTypes = FacetManager.getFacetTypes(record.entityType.def.ctor);
         // facetTypes.forEach(facetType => {
         //     const facetPath = facetType.lsi.path;

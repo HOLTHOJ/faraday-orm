@@ -16,13 +16,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {IdColumnDef} from "./Id";
-import {ColumnDef} from "./Column";
-import {CallbackDef} from "./Callback";
-import {Class} from "../../util";
-import {def} from "../../util/Req";
-import {KeyPath} from "../../util/KeyPath";
-import {ExposedDef} from "./Exposed";
+import {Class} from "../util";
+import {def} from "../util/Req";
+import {KeyPath} from "../util/KeyPath";
 
 /** The entity annotation definition. */
 export type EntityDef<E extends object = {}> = {
@@ -40,39 +36,6 @@ export const ENTITY_DEF = new Map<Function, EntityDef>();
 
 /** @internal Repository of all entities and the name under which they are defined. */
 export const ENTITY_REPO = new Map<string, EntityDef>();
-
-/** The full entity type details. */
-export type EntityType<E extends object = any> = {
-
-    /** The entity class definition. */
-    readonly def: EntityDef<E>,
-
-    /** All the columns defined on this entity type. */
-    readonly cols: ColumnDef[],
-
-    /** All the properties that will be exposed when calling JSON.stringify(). */
-    readonly exposed: ExposedDef[],
-
-    /**
-     * Contains a custom key path for this entity.
-     * By default the Id values will be read from their resp @Id columns,
-     * but if you want to use composite keys, you can specify the key paths here.
-     */
-    readonly keyPath?: KeyPath,
-
-    /** The PK column defined on this entity. */
-    readonly pk: IdColumnDef,
-
-    /** The (optional) SK column defined on this entity. */
-    readonly sk?: IdColumnDef,
-
-    /** The callbacks defined on this entity. */
-    readonly cbs: CallbackDef[],
-
-    /** The (optional) custom toJSON() function defined for this entity type. */
-    readonly toJSON?: PropertyDescriptor,
-
-};
 
 /**
  * Additional options for the @Entity configuration.

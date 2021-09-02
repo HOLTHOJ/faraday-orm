@@ -16,22 +16,12 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import ValidateTable from "../../src/bin/ValidateTable";
-import {loadTableConfig} from "../../src/manager/TableConfig";
-import {PathToRegexpPathGenerator} from "../../src/util/PathToRegexpPathGenerator";
-import {EntityManagerFactory} from "../../src/EntityManagerFactory";
-import {EntityManagerImpl} from "../../src/manager/EntityManagerImpl";
+import {DynamoDB} from "aws-sdk";
 
-describe("test/filesystem", () => {
+export class EntityNotFoundException extends Error {
 
-    test("GET root/test-file", async () => {
-        await ValidateTable(EntityManagerFactory.load({
-            userName: "su",
-            tableName: "faraday-test",
-            tableConfig: loadTableConfig("./test/filesystem/faraday.orm.json", file => require(file).default),
-            logLevel: "FULL",
-            pathGenerator: new PathToRegexpPathGenerator(),
-        }) as EntityManagerImpl)
-    })
+    constructor(entity: string, key: DynamoDB.Types.AttributeMap) {
+        super(`Entity ${entity} not found for key: ${JSON.stringify(key)}.`);
+    }
 
-})
+}

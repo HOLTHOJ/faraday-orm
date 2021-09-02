@@ -16,14 +16,15 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {EntityManager, EntityManagerConfig} from "./EntityManager";
-import {loadTableConfig, TableConfig} from "./TableConfig";
-import {PathGenerator} from "../../util/KeyPath";
-import {LogLevel, SessionConfig} from "./SessionManager";
-import {req} from "../../util/Req";
-import {PathToRegexpPathGenerator} from "../../util/PathToRegexpPathGenerator";
-import {loadEntityDefs} from "./EntityTypeLoader";
-import {Class} from "../../util";
+import {EntityManager} from "./EntityManager";
+import {loadTableConfig, TableConfig} from "./manager/TableConfig";
+import {PathGenerator} from "./util/KeyPath";
+import {LogLevel, SessionConfig} from "./manager/SessionManager";
+import {req} from "./util/Req";
+import {PathToRegexpPathGenerator} from "./util/PathToRegexpPathGenerator";
+import {loadEntityDefs} from "./manager/EntityTypeLoader";
+import {Class} from "./util";
+import {EntityManagerConfig, EntityManagerImpl} from "./manager/EntityManagerImpl";
 
 export type EntityManagerFactoryInput = {
 
@@ -36,36 +37,57 @@ export type EntityManagerFactoryInput = {
     /** Table config file. If not specified the "faraday.orm.json" file will be loaded from the project root. */
     readonly tableConfig: string | TableConfig,
 
+    /** Loads each annotated javascript class. Defaults to nodejs "require(file).default". */
     readonly entityLoader: (file: string) => Class
 
     /** The default path generator for this entity manager. */
     readonly pathGenerator: PathGenerator,
 
+    /** The level of detail at which to write requests and response statistics to the SessionManager log. */
     readonly logLevel: LogLevel;
 
 }
 
+/**
+ * Factory class to create a new EntityManager.
+ */
 export class EntityManagerFactory {
 
-    /** Global config as a fallback for creating Entity manager instances. */
+    /** Global config contains defaults for creating Entity manager instances. */
     public static GLOBAL_CONFIG: Partial<EntityManagerFactoryInput> = {
         logLevel: "STATS",
+        tableConfig: "faraday.orm.json",
         pathGenerator: new PathToRegexpPathGenerator(),
         entityLoader: file => require(file).default,
     }
 
+    /**
+     * Creates a new EntityManager.
+     *
+     * An EntityManager represents a session of database operations against 1 DynamoDB table,
+     * so your application typically only needs to create one EntityManager instance per table.
+     *
+     * Creating a new EntityManager will require the system to parse and load all Faraday entity annotations.
+     * So be aware that this step takes some processing time.
+     *
+     * @param input
+     */
     public static load(input?: Partial<EntityManagerFactoryInput>): EntityManager {
         const mergedInput = {...EntityManagerFactory.GLOBAL_CONFIG, ...input};
 
         const tableName = req(mergedInput.tableName, `Missing table name in config.`);
-        const tableConfig = (typeof mergedInput.tableConfig === "object") ? mergedInput.tableConfig : loadTableConfig(mergedInput.tableConfig, mergedInput.entityLoader)
-        const tableDef = req(tableConfig[tableName], `Table name ${tableName} not found in table config.`);
+        const tableConfig = req(mergedInput.tableConfig, "Missing table config.");
+        const entityLoader = req(mergedInput.entityLoader, "Missing entity loader.");
+        const pathGenerator = req(mergedInput.pathGenerator, `Missing path generator in config.`);
+
+        const tableConfigLoaded = (typeof tableConfig === "object") ? {...tableConfig} : loadTableConfig(tableConfig, entityLoader)
+        const tableDef = req(tableConfigLoaded[tableName], `Table name ${tableName} not found in table config.`);
 
         const entityManagerConfig: EntityManagerConfig = {
             tableName: tableName,
             tableDef: tableDef,
             entityDef: loadEntityDefs(tableDef),
-            pathGenerator: req(mergedInput.pathGenerator, `Missing path generator in config.`),
+            pathGenerator: pathGenerator,
         }
 
         const sessionConfig: SessionConfig = {
@@ -73,7 +95,7 @@ export class EntityManagerFactory {
             level: req(mergedInput.logLevel, `Missing logLevel in config.`),
         };
 
-        return new EntityManager(entityManagerConfig, sessionConfig)
+        return new EntityManagerImpl(entityManagerConfig, sessionConfig)
     }
 
 }

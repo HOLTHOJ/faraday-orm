@@ -16,38 +16,38 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {AttributeMapper} from "../../util/mapper/AttributeMapper";
-import {StringConverter} from "../../converter";
+import {AttributeMapper} from "../util/mapper/AttributeMapper";
+import {StringConverter} from "../converter";
 import {DynamoDB} from "aws-sdk";
-import {req} from "../../util/Req";
-import {ENTITY_DEF, ENTITY_REPO, EntityType} from "../annotation/Entity";
-import {EntityProxy} from "./EntityProxy";
-import {createEntityProxy} from "./EntityProxyImpl";
-import {Class} from "../../util";
-import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
-import {PathGenerator} from "../../util/KeyPath";
+import {req} from "../util/Req";
+import {ENTITY_DEF, ENTITY_REPO} from "../annotation/Entity";
+import {Class} from "../util";
+import {ExpectedMapper} from "../util/mapper/ExpectedMapper";
+import {PathGenerator} from "../util/KeyPath";
 import {SessionConfig, SessionManager} from "./SessionManager";
 import {TransactionManager} from "./TransactionManager";
 import {TableDef} from "./TableConfig";
+import {EntityType} from "./EntityType";
+import {EntityNotFoundException} from "./EntityNotFoundException";
+import {ResultSet} from "../util/ResultSet";
+import {ConditionMapper} from "../util/mapper/ConditionMapper";
+import {QueryInput} from "./TransactionCallback";
+import {ManagedFacet} from "./ManagedFacet";
+import {ManagedEntity} from "./ManagedEntity";
+import {EntityManager} from "../EntityManager";
 
 /**
  * General config object for the EntityManager.
  */
 export type EntityManagerConfig = {
 
-    /** The table name. This needs to match with a table definition in the TableConfig. */
+    /** The table name. */
     readonly tableName: string,
 
-    /**
-     * Every EntityManager can only connect to 1 single table.
-     * This is the definition for that table as described in the TableConfig json file.
-     */
+    /** The table definition for the table targeted by this EntityManager. */
     readonly tableDef: TableDef,
 
-    /**
-     * A map of loaded entities definitions.
-     * Each loaded entity is described as an Entity Type.
-     */
+    /** A map of (pre)loaded entity definitions. Each loaded entity is described as an Entity Type. */
     readonly entityDef: Map<string, EntityType>
 
     /** The default path generator for this entity manager. */
@@ -55,21 +55,13 @@ export type EntityManagerConfig = {
 
 };
 
-export class EntityNotFoundException extends Error {
-
-    constructor(entity: string, key: DynamoDB.Types.AttributeMap) {
-        super(`Entity ${entity} not found for key: ${JSON.stringify(key)}.`);
-    }
-
-}
-
 /**
- *
+ * The EntityManager that provides CRUD operations on a managed entity.
  */
-export class EntityManager {
+export class EntityManagerImpl implements EntityManager {
 
     /** The technical column that is used to match the db item with the model. */
-    public static TYPE_COLUMN = {name: "$type", converter: StringConverter};
+    public static readonly TYPE_COLUMN = {name: "$type", converter: StringConverter};
 
     /** The config for this entity manager. */
     public readonly config: EntityManagerConfig;
@@ -84,24 +76,34 @@ export class EntityManager {
      * */
     public readonly session: SessionManager;
 
+    /** An extendable manager that is responsible for translating the CRUD requests to raw DynamoDB requests. */
     public readonly transactionManager: TransactionManager;
 
+    /**
+     * @private Only create an EntityManager using the EntityManagerFactory.
+     * @see EntityManagerFactory
+     */
     public constructor(entityManagerConfig: EntityManagerConfig, sessionConfig: SessionConfig) {
         this.config = entityManagerConfig;
         this.session = new SessionManager(sessionConfig);
         this.transactionManager = new TransactionManager(this.session, this.config);
     }
 
-    public static get(entityManagerConfig: EntityManagerConfig, sessionConfig: SessionConfig): EntityManager {
-        return new EntityManager(entityManagerConfig, sessionConfig);
+    /**
+     * @private Only create an EntityManager using the EntityManagerFactory.
+     * @see EntityManagerFactory
+     */
+    public static get(entityManagerConfig: EntityManagerConfig, sessionConfig: SessionConfig): EntityManagerImpl {
+        return new EntityManagerImpl(entityManagerConfig, sessionConfig);
     }
+
 
     /***************************************************************************************
      * CRUD OPERATIONS
      ***************************************************************************************/
 
     /**
-     * Gets the entity that matches the Id values of the given entity.
+     * Gets the record that matches the Id values of the given entity.
      *
      * If the given entity's type configuration has a KeyPath configured,
      * then the Id values will first be compiled before querying the database.
@@ -114,7 +116,8 @@ export class EntityManager {
      */
     public async getItem<E extends object>(entity: E): Promise<E> {
         const key = new AttributeMapper();
-        const record = EntityManager.internal(entity);
+        const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
+        // const record = EntityManager.internal(entity);
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -126,14 +129,54 @@ export class EntityManager {
 
         const result = await this.transactionManager.getItem({record, key});
         if (typeof result.Item !== "undefined") {
-            return this.loadFromDB(record.entityType, result.Item);
+            return this.loadFromDB(record.entityType, result.Item).entity;
         } else {
             throw new EntityNotFoundException(record.entityType.def.name, key.toMap())
         }
     }
 
     /**
-     * Creates the given entity in the database.
+     * Queries a given facet query name.
+     *
+     * @param entity
+     * @param queryName If queryName is empty, then we perform a findAll query on the DEFAULT index.
+     *
+     * @return An iterable result set.
+     */
+    public queryItem<E extends object>(entity: E, queryName?: string): ResultSet<E> {
+        const mapper = new ConditionMapper();
+        const defaultPathGenerator = this.config.pathGenerator;
+
+        const facetProxy = new ManagedFacet(this.getEntityType(entity.constructor), entity, queryName);
+        // const facetProxy = FacetManager.internal(entity);
+        // const facetType = (typeof queryName !== "undefined")
+        //     ? this.getFacetType(facetProxy.entityType, queryName)
+        //     : FacetManager.getDefaultFacetType(facetProxy.entityType);
+
+        // Compile the table keys.
+        facetProxy.compileKeys(defaultPathGenerator);
+
+        // Extract the keys into a query condition.
+        facetProxy.forEachId((id, value, valueIsSet) => {
+            if (id.idType === "PK") {
+                mapper.eq(id, value)
+            } else if (valueIsSet) {
+                // mapper.apply(facetType.operation, {name: this.entityManager.tableDef.facets[id.idType], converter: id.converter}, value);
+            }
+        }, false);
+
+        const queryInput: QueryInput = {
+            indexName: facetProxy.facetType?.indexName,
+            record: facetProxy,
+            item: mapper
+        };
+
+        return new ResultSet(queryInput, this.transactionManager,
+            (elt) => this.loadFromDB(facetProxy.entityType, elt).entity);
+    }
+
+    /**
+     * Creates a record for the given entity in the database.
      * This is an exclusive create function and will fail if the item already exists.
      *
      * @param entity The entity to create.
@@ -148,7 +191,8 @@ export class EntityManager {
     public async createItem<E extends object>(entity: E): Promise<E> {
         const item = new AttributeMapper();
         const expected = new ExpectedMapper();
-        const record = EntityManager.internal(entity);
+        const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
+        // const record = EntityManager.internal(entity);
 
         // Verify that internal fields are not set.
         record.forEachCol((col, value, valueIsSet) => {
@@ -164,10 +208,10 @@ export class EntityManager {
             }
         }, false);
 
-        // Execute callbacks before extracting the columns.
+        // Execute callbacks before compiling the IDs.
         record.executeCallbacks("INSERT", this.session.config)
 
-        // Compile the key paths into their id columns.
+        // Compile the key paths into their ID columns.
         record.compileKeys(this.config.pathGenerator);
 
         // Extract the ID columns into the DB request.
@@ -183,17 +227,23 @@ export class EntityManager {
         }, true);
 
         // Set the $type column
-        item.setValue(EntityManager.TYPE_COLUMN, record.entityType.def.name);
+        item.setValue(EntityManagerImpl.TYPE_COLUMN, record.entityType.def.name);
 
         await this.transactionManager.putItem(record, item, expected);
-        return this.loadFromDB(record.entityType, item.toMap());
+        return this.loadFromDB(record.entityType, item.toMap()).entity;
     }
 
     /**
-     * Deletes the entity that matches the Id values of the given entity.
+     * Deletes the record that matches the Id values of the given entity.
+     *
+     * If the given entity has any other non-id fields set,
+     * then those fields will be used as expected values.
+     *
+     * This allows you to verify that the record you are trying to delete
+     * and the record in the database are identical, and have not been modified in the meanwhile.
      *
      * If the given entity's type configuration has a KeyPath configured,
-     * then the Id values will first be compiled before querying the database.
+     * then the Id values will first be compiled.
      *
      * @param entity The entity to delete.
      *
@@ -203,17 +253,18 @@ export class EntityManager {
      *
      * @return A new entity instance containing the deleted item.
      */
-    public deleteItem<E extends object>(entity: E): Promise<E> {
+    public async deleteItem<E extends object>(entity: E): Promise<E> {
         const key = new AttributeMapper();
         const expected = new ExpectedMapper();
-        const record = EntityManager.internal(entity);
+        const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
+        // const record = EntityManager.internal(entity);
 
         // Set all provided fields as expected.
         record.forEachCol((col, value, valueIsSet) => {
             if (valueIsSet) expected.setValue(col, "EQ", value);
         }, true);
 
-        // Run callbacks because they could generate ID columns.
+        // Run callbacks because they could generate partial ID columns.
         record.executeCallbacks("DELETE", this.session.config);
 
         // Compile the key paths into their id columns.
@@ -224,18 +275,18 @@ export class EntityManager {
             key.setValue(id, value);
         }, true);
 
-        return this.transactionManager.deleteItem(record, key, expected)
-            .then(data => this.loadFromDB(record.entityType, req(data.Attributes)));
+        const data = await this.transactionManager.deleteItem(record, key, expected)
+        return this.loadFromDB(record.entityType, req(data.Attributes)).entity;
     }
 
     /**
      * Updates the given entity in the database.
      *
-     * This will completely override the item in the database with the values of the given entity.
+     * This will completely override the record in the database with the values of the given entity.
      *
      * @param entity            The new version of the entity to update.
      * @param expectedEntity    The old version of the entity that we currently expect to be in the database.
-     *                          Not all fields need to be populated, only the fields that are set are verified.
+     *                          Not all fields need to be populated, only the fields that are set will be verified.
      *
      * @throws Error if the item does not exist.
      * @throws Error if an internal field is changed.
@@ -247,8 +298,10 @@ export class EntityManager {
      * @return A new entity instance containing the new updated item.
      */
     public async updateItem<E extends object>(entity: E, expectedEntity ?: E): Promise<E> {
-        const record = EntityManager.internal(entity);
-        const expected = EntityManager.internal(expectedEntity || this.load(record.entityType));
+        const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
+        // const record = EntityManager.internal(entity);
+        const expected = new ManagedEntity(expectedEntity ? this.getEntityType(expectedEntity.constructor) : record.entityType, expectedEntity);
+        // const expected = EntityManager.internal(expectedEntity || this.load(record.entityType));
 
         // Validate that record & expected are the same type.
         if (record.entityType !== expected.entityType) throw new Error(`Inconsistent types.`);
@@ -287,10 +340,10 @@ export class EntityManager {
         }, true);
 
         // Set the $type column
-        item.setValue(EntityManager.TYPE_COLUMN, record.entityType.def.name);
+        item.setValue(EntityManagerImpl.TYPE_COLUMN, record.entityType.def.name);
 
-        return this.transactionManager.updateItem(record, item, exp)
-            .then(() => this.loadFromDB(record.entityType, item.toMap()));
+        await this.transactionManager.updateItem(record, item, exp)
+        return this.loadFromDB(record.entityType, item.toMap()).entity;
     }
 
     /**
@@ -305,13 +358,14 @@ export class EntityManager {
      *
      * @return A new entity instance containing the given attribute values.
      */
-    public loadFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): EntityProxy<E> {
+    public loadFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): ManagedEntity<E> {
         const item = new AttributeMapper(data);
-        if (entityType.def.name !== item.getRequiredValue(EntityManager.TYPE_COLUMN)) {
+        if (entityType.def.name !== item.getRequiredValue(EntityManagerImpl.TYPE_COLUMN)) {
             throw new Error(`Unexpected record type ${entityType}.`);
         }
 
-        const entity = this.load(entityType);
+        const entity = new ManagedEntity(entityType)
+        // const entity = this.load(entityType);
         entity.forEachId((id) => {
             entity.setValue(id.propName, item.getValue(id));
         }, false);
@@ -319,8 +373,9 @@ export class EntityManager {
         entity.forEachCol((col) => {
             const value = item.getValue(col);
             if (col.required && typeof value === "undefined") {
-                console.warn("Database col", col, "is required and no value was found. Loading will continue, " +
-                    "but the Entity ORM configuration is likely not (no longer) in line with the data.");
+                throw new Error(`Required field ${col.name} not found in database record.`)
+                // console.warn("Database col", col, "is required and no value was found. Loading will continue, " +
+                //     "but the Entity ORM configuration is likely not (no longer) in line with the data.");
             }
             entity.setValue(col.propName, value);
         }, false);
@@ -334,51 +389,6 @@ export class EntityManager {
     /***************************************************************************************
      * STATIC UTIL FUNCTIONS
      ***************************************************************************************/
-
-    /**
-     * Tests if the given entity is a managed entity.
-     * A managed entity is an entity that is first loaded by the Entity Manager,
-     * and is enhanced with some additional technical methods needed by the Entity Manager.
-     *
-     * @param entity The entity instance to test.
-     *
-     * @see EntityManager#load
-     * @return The same entity type-casted as Entity Proxy if managed.
-     */
-    public static isManaged<E extends object>(entity: E | EntityProxy<E>): entity is EntityProxy<E> {
-        return typeof (entity as EntityProxy<E>).entityType !== "undefined";
-    }
-
-    /**
-     * Casts the given entity to a managed entity, if the entity instance is actually managed.
-     *
-     * @param entity The entity instance to cast.
-     *
-     * @throws Error if the given entity instance is not a managed instance.
-     *
-     * @see EntityManager#load
-     * @see EntityManager#isManaged
-     * @return The same entity type-casted as Entity Proxy if managed.
-     */
-    public static internal<X extends object>(entity: X): EntityProxy<X> {
-        if (this.isManaged(entity)) return entity;
-        throw new Error(`Entity ${entity.constructor} is not a managed entity. Load it in the entity manager first.`);
-    }
-
-    /**
-     * Loads the given entity type into a managed entity instance.
-     * Every entity type should first be loaded before it can be used in any of the Entity Manager's CRUD operations.
-     *
-     * @param entityType The entity type to load.
-     *
-     * @see EntityManager#getEntityType
-     * @return A new managed entity instance.
-     */
-    public load<X extends object>(entityType: string | Class<X> | EntityType<X>): EntityProxy<X> {
-        const type = (typeof entityType === "function" || typeof entityType === "string")
-            ? this.getEntityType(entityType) : entityType;
-        return new (createEntityProxy(type))();
-    }
 
     /**
      * Gets the entity type from the given entity information.
@@ -402,7 +412,7 @@ export class EntityManager {
             return req(this.config.entityDef.get(req(ENTITY_DEF.get(entity)).name), `Invalid entity type ${entity}.`);
         } else {
             const item = new AttributeMapper(entity);
-            const type = item.getRequiredValue(EntityManager.TYPE_COLUMN);
+            const type = item.getRequiredValue(EntityManagerImpl.TYPE_COLUMN);
             return req(this.config.entityDef.get(type), `Invalid entity type name ${entity}.`);
         }
     }

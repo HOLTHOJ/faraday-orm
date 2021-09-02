@@ -18,7 +18,7 @@
 
 import {ViewColumnDef, ViewIdColumnDef, ViewQueryDef, ViewSourceDef, ViewType} from "..";
 import {PathGenerator} from "../../util/KeyPath";
-import {EntityDef, EntityType} from "../../entity";
+import {EntityDef} from "../../entity";
 
 /** A view instance. */
 export type ViewProxy<V extends object = any> = V & ViewProxyMethods<V>;

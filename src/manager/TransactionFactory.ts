@@ -1,5 +1,5 @@
-import {EntityManagerConfig} from "./EntityManager";
 import {TransactionCallback} from "./TransactionCallback";
+import {EntityManagerConfig} from "./EntityManagerImpl";
 
 export interface TransactionFactory {
 

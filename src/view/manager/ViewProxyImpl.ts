@@ -18,7 +18,7 @@
 
 import {ViewProxy, ViewProxyMethods} from "./ViewProxy";
 import {ViewColumnDef, ViewIdColumnDef, ViewQueryDef, ViewSourceDef, ViewType} from "..";
-import {EntityDef, EntityManager, EntityType} from "../../entity";
+import {EntityDef} from "../../entity";
 import {one, req, single} from "../../util/Req";
 import {UNDEFINED} from "../../util";
 import {PathGenerator} from "../../util/KeyPath";

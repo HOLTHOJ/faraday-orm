@@ -19,11 +19,13 @@
 import {UNDEFINED} from "../../../src/util";
 import {NumberConverter, StringConverter} from "../../../src/converter";
 import {Callback, CallbackOperation, Column, Entity, Id, Internal} from "../../../src/entity";
-import {Editable} from "../../../src/entity/model/Editable";
+import {Editable, EditableOptions} from "../../../src/entity/Editable";
 import {Facet, FacetId} from "../../../src/facet";
-import {EntityManagerConfig} from "../../../src/entity/manager/EntityManager";
-import {Exposed} from "../../../src/entity/annotation/Exposed";
+import {Exposed} from "../../../src/annotation/Exposed";
+import {DEFAULT} from "../../../src/annotation/Facet";
+import {SessionConfig} from "../../../src/manager/SessionManager";
 
+@Facet(DEFAULT, DBFile.QUERY.ORDER_BY_SIZE, "BEGINS_WITH", "file/")
 @Facet("LSI1", DBFile.QUERY.ORDER_BY_SIZE, "BEGINS_WITH", "file/")
 @Facet("LSI1", DBFile.QUERY.FILTER_BY_SIZE, "BEGINS_WITH", "file/:size/")
 @Facet("LSI2", DBFile.QUERY.ORDER_BY_MIME_TYPE, "BEGINS_WITH", "file/")
@@ -37,6 +39,10 @@ export default class DBFile extends Editable {
         FILTER_BY_SIZE: "filter-by-size",
         ORDER_BY_MIME_TYPE: "order-by-mimetype",
         FILTER_BY_MIME_TYPE: "filter-by-mimetype",
+    }
+
+    constructor(options ?: EditableOptions) {
+        super(options);
     }
 
     @Exposed()
@@ -64,7 +70,7 @@ export default class DBFile extends Editable {
     public sizeIndex: string = UNDEFINED // "file/{mimetype}/{filename}"
 
     @Callback()
-    updateFacets(operation: CallbackOperation, config: EntityManagerConfig) {
+    updateFacets(operation: CallbackOperation, config: SessionConfig) {
         if (operation === "DELETE") return;
         if (this.size) this.sizeIndex = "file/" + this.size + "/" + this.fileName;
     }

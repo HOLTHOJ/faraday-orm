@@ -17,7 +17,7 @@
  */
 
 import DBFile from "./model/DBFile";
-import {EntityManagerFactory} from "../../src/entity/manager/EntityManagerFactory";
+import {EntityManagerFactory} from "../../src/EntityManagerFactory";
 
 describe("test/filesystem", () => {
 
@@ -30,16 +30,18 @@ describe("test/filesystem", () => {
             entityLoader: file => require(file).default,
         });
 
-        const fileToCreate = entityManager.load(DBFile);
+        const fileToCreate = new DBFile();
         fileToCreate.account = "acme";
         fileToCreate.directory = "root";
         fileToCreate.fileName = "test-file-" + rand;
+
+        console.log("File to create", fileToCreate)
 
         const createdFile = await entityManager.createItem(fileToCreate);
         console.log("Created file", JSON.stringify(createdFile));
         console.log("Capacity", entityManager.session.lastLog?.putItemOutput?.ConsumedCapacity);
 
-        const fileToGet = entityManager.load(DBFile);
+        const fileToGet = new DBFile();
         fileToGet.account = "acme";
         fileToGet.directory = "root";
         fileToGet.fileName = "test-file-" + rand;

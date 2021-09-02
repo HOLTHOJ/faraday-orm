@@ -16,7 +16,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Converter, StringConverter} from "../../converter";
+import {Converter, StringConverter} from "../converter";
 import {ColumnDef} from "./Column";
 
 /** The type of id column. PK = Partition Key, SK = Sort Key. */

@@ -16,14 +16,14 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {EntityManagerConfig} from "./EntityManager";
-import {EntityProxy} from "./EntityProxy";
-import {AttributeMapper} from "../../util/mapper/AttributeMapper";
-import {ExpectedMapper} from "../../util/mapper/ExpectedMapper";
+import {AttributeMapper} from "../util/mapper/AttributeMapper";
+import {ExpectedMapper} from "../util/mapper/ExpectedMapper";
 import {DynamoDB} from "aws-sdk";
 import {GetItemInput, QueryInput, TransactionCallback, TransactionCallbackChain} from "./TransactionCallback";
 import {SessionManager} from "./SessionManager";
 import {TransactionFactory} from "./TransactionFactory";
+import {ManagedEntity} from "./ManagedEntity";
+import {EntityManagerConfig} from "./EntityManagerImpl";
 
 /**
  *
@@ -62,11 +62,11 @@ export class TransactionManager {
         return this.chain.getItem(input);
     }
 
-    deleteItem<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.DeleteItemOutput> {
+    deleteItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.DeleteItemOutput> {
         return this.chain.deleteItem(record, item, expected);
     }
 
-    putItem<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.PutItemOutput> {
+    putItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.PutItemOutput> {
         return this.chain.putItem(record, item, expected);
     }
 
@@ -74,7 +74,7 @@ export class TransactionManager {
         return this.chain.query(input);
     }
 
-    updateItem<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.UpdateItemOutput> {
+    updateItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.UpdateItemOutput> {
         return this.chain.updateItem(record, item, expected);
     }
 
@@ -102,15 +102,15 @@ class TransactionManagerNotifier implements TransactionCallbackChain {
         return this.cb.query(this.cbc, input);
     }
 
-    putItem<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
+    putItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
         return this.cb.putItem(this.cbc, record, item, expected);
     }
 
-    deleteItem<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput> {
+    deleteItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput> {
         return this.cb.deleteItem(this.cbc, record, item, expected);
     }
 
-    updateItem<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
+    updateItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
         return this.cb.updateItem(this.cbc, record, item, expected);
     }
 
@@ -147,7 +147,7 @@ class DefaultTransaction implements TransactionCallbackChain {
         });
     }
 
-    async putItem<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
+    async putItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
         return this.session.putItem({
             TableName: this.config.tableName,
             Item: item.toMap(),
@@ -155,7 +155,7 @@ class DefaultTransaction implements TransactionCallbackChain {
         });
     }
 
-    async deleteItem<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput> {
+    async deleteItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput> {
         return this.session.deleteItem({
             TableName: this.config.tableName,
             Key: item.toMap(),
@@ -164,7 +164,7 @@ class DefaultTransaction implements TransactionCallbackChain {
         });
     }
 
-    async updateItem<E extends object>(record: EntityProxy<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
+    async updateItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
         return this.session.putItem({
             TableName: this.config.tableName,
             Item: item.toMap(),

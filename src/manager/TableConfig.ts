@@ -17,8 +17,8 @@
  */
 
 import {IdType} from "../annotation/Id";
-import {FacetIdType} from "../../facet/annotation/FacetId";
-import {Class} from "../../util";
+import {FacetIdType} from "../annotation/FacetId";
+import {Class} from "../util";
 import * as fs from "fs";
 
 export type TableConfig = { [tableName: string]: TableDef }

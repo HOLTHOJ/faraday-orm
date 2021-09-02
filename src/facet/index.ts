@@ -16,6 +16,5 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-export {Facet} from "./annotation/Facet";
-export {FacetId} from "./annotation/FacetId";
-export {FacetManager} from "./manager/FacetManager";
+export {Facet} from "../annotation/Facet";
+export {FacetId} from "../annotation/FacetId";

@@ -16,9 +16,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Callback, CallbackOperation, Column, Internal} from "..";
-import {DateNumberConverter, StringConverter} from "../../converter";
-import {UNDEFINED} from "../../util";
+import {Callback, CallbackOperation, Column, Internal} from "./index";
+import {DateNumberConverter, StringConverter} from "../converter";
+import {UNDEFINED} from "../util";
 import {Versionable, VersionableOptions} from "./Versionable";
 import {SessionConfig} from "../manager/SessionManager";
 
