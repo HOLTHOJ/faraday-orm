@@ -16,6 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+import {unique} from "../util/Req";
+
 /**
  * The definition of a database column defined on an Entity class.
  */
@@ -53,7 +55,10 @@ export function Internal<T>() {
         };
 
         if (ENTITY_INTERNAL.has(target.constructor)) {
-            ENTITY_INTERNAL.get(target.constructor)!.push(internalDef);
+            const internals = ENTITY_INTERNAL.get(target.constructor)!.concat(internalDef);
+            unique(internals, elt => elt.propName, true);
+
+            ENTITY_INTERNAL.set(target.constructor, internals);
         } else {
             ENTITY_INTERNAL.set(target.constructor, [internalDef]);
         }

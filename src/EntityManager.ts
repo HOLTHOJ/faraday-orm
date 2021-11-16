@@ -81,7 +81,15 @@ export interface EntityManager {
      *
      * @return An iterable result set.
      */
-    queryItem<E extends object>(entity: E, queryName?: string): ResultSet<E>
+    queryFacet<E extends object>(entity: E, queryName?: string): ResultSet<E>
+
+    /**
+     * Queries a given view query name.
+     *
+     * @param view
+     * @param queryName
+     */
+    queryView<E extends object>(view: E, queryName?: string): ResultSet<E>
 
     /**
      * Creates a record for the given entity in the database.
@@ -152,7 +160,7 @@ export interface EntityManager {
      *
      * @return A new entity instance containing the given attribute values.
      */
-    loadFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): ManagedEntity<E>
+    loadEntityFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): ManagedEntity<E>
 
     /**
      * Gets the entity type from the given entity information.

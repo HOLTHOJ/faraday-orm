@@ -19,46 +19,43 @@
 import {DynamoDB} from "aws-sdk";
 import {PathGenerator} from "../util/KeyPath";
 import {Class} from "../util";
-import {FACET_IDS, FacetIdType} from "./FacetId";
+import {FacetIdType} from "./FacetId";
+import {unique} from "../util/Req";
 
 /** The facet query operation */
 export type FacetQueryOperation = DynamoDB.ComparisonOperator;
 
 /** @internal Repository of all facets and the constructor function on which they are defined. */
-export const FACET_DEF = new Map<Function, Array<Readonly<FacetDef>>>();
+export const FACET_DEF = new Map<Function, FacetDef[]>();
 
-/**
- * The default index. This will query the table's PK & SK without an index.
- * @type {typeof DEFAULT}
- */
-export const DEFAULT: unique symbol = Symbol("default-index");
+/** The default facet. This will query the table's PK & SK without an index. */
+export const DEFAULT_FACET: unique symbol = Symbol("default-facet");
 
 /** The full facet type details. */
 export type FacetDef<F extends object = any> = {
     ctor: Class<F>,
-    indexName: FacetIdType | typeof DEFAULT,
+    indexName: FacetIdType | typeof DEFAULT_FACET,
     queryName: string,
     operation: FacetQueryOperation,
     path?: string,
-    pathGenerator?: PathGenerator
-    // lsi?: FacetIdDef,
+    pathGenerator?: PathGenerator,
 };
 
 /**
  * Defines a Facet query on this entity.
  *
  * Facets provide an alternative way of accessing an item.
- * They will use a DynamoDB query on an LSI index defined on the table.
+ * They will execute a DynamoDB query on an LSI index defined on the entity's table.
  *
- * @param index
- * @param queryName
- * @param operation
- * @param path
- * @param pathGenerator
+ * @param index         The LSI-index to use.
+ * @param queryName     Unique query name needed to call this query in the EntityManager.
+ * @param operation     The query operation used in construction the query.
+ * @param path          The SK path to match against.
+ * @param pathGenerator Optional path generator.
  */
-export function Facet(index: FacetIdType | typeof DEFAULT, queryName: string, operation: FacetQueryOperation): (ctor: Class) => void;
-export function Facet(index: FacetIdType | typeof DEFAULT, queryName: string, operation: FacetQueryOperation, path: string, pathGenerator?: PathGenerator): (ctor: Class) => void;
-export function Facet(index: FacetIdType | typeof DEFAULT, queryName: string, operation: FacetQueryOperation, path?: string, pathGenerator?: PathGenerator): (ctor: Class) => void {
+export function Facet(index: FacetIdType | typeof DEFAULT_FACET, queryName: string, operation: FacetQueryOperation): (ctor: Class) => void;
+export function Facet(index: FacetIdType | typeof DEFAULT_FACET, queryName: string, operation: FacetQueryOperation, path: string, pathGenerator?: PathGenerator): (ctor: Class) => void;
+export function Facet(index: FacetIdType | typeof DEFAULT_FACET, queryName: string, operation: FacetQueryOperation, path?: string, pathGenerator?: PathGenerator): (ctor: Class) => void {
     return (ctor) => {
 
         const facetType: FacetDef = {
@@ -70,21 +67,11 @@ export function Facet(index: FacetIdType | typeof DEFAULT, queryName: string, op
             pathGenerator: pathGenerator,
         }
 
-        if (index !== DEFAULT) {
-            const ids = FACET_IDS.get(ctor) || [];
-
-            let proto = Object.getPrototypeOf(ctor);
-            while (proto) {
-                ids.push(...(FACET_IDS.get(proto) || []));
-                proto = Object.getPrototypeOf(proto);
-            }
-
-            // facetType.lsi = single(ids.filter(elt => elt.facetIdType === index),
-            //     `Illegal SK Id Column configuration.`, true);
-        }
-
         if (FACET_DEF.has(ctor)) {
-            FACET_DEF.get(ctor)!.push(facetType);
+            const callbacks = FACET_DEF.get(ctor)!.concat(facetType);
+            unique(callbacks, elt => elt.queryName, true);
+
+            FACET_DEF.set(ctor, callbacks);
         } else {
             FACET_DEF.set(ctor, [facetType]);
         }

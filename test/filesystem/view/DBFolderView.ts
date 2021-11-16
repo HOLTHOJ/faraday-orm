@@ -17,8 +17,8 @@
  */
 
 import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../src/view";
-import {UNDEFINED} from "../../../src/util/Undefined";
-import {DBFolder} from "../model/DBFolder";
+import {UNDEFINED} from "../../../src/util";
+import DBFolder from "../model/DBFolder";
 
 /**
  * The folder view lists all the Folder entities of a given directory,

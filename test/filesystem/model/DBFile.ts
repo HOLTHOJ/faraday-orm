@@ -17,15 +17,15 @@
  */
 
 import {UNDEFINED} from "../../../src/util";
-import {NumberConverter, StringConverter} from "../../../src/converter";
+import {NumberConverter, ObjectConverter, StringConverter, StringSetConverter} from "../../../src/converter";
 import {Callback, CallbackOperation, Column, Entity, Id, Internal} from "../../../src/entity";
 import {Editable, EditableOptions} from "../../../src/entity/Editable";
-import {Facet, FacetId} from "../../../src/facet";
 import {Exposed} from "../../../src/annotation/Exposed";
-import {DEFAULT} from "../../../src/annotation/Facet";
+import {DEFAULT_FACET, Facet} from "../../../src/annotation/Facet";
 import {SessionConfig} from "../../../src/manager/SessionManager";
+import {FacetId} from "../../../src/annotation/FacetId";
 
-@Facet(DEFAULT, DBFile.QUERY.ORDER_BY_SIZE, "BEGINS_WITH", "file/")
+@Facet(DEFAULT_FACET, DBFile.QUERY.ORDER_BY_SIZE, "BEGINS_WITH", "file/")
 @Facet("LSI1", DBFile.QUERY.ORDER_BY_SIZE, "BEGINS_WITH", "file/")
 @Facet("LSI1", DBFile.QUERY.FILTER_BY_SIZE, "BEGINS_WITH", "file/:size/")
 @Facet("LSI2", DBFile.QUERY.ORDER_BY_MIME_TYPE, "BEGINS_WITH", "file/")
@@ -68,6 +68,12 @@ export default class DBFile extends Editable {
     @Exposed(false)
     @FacetId("LSI1")
     public sizeIndex: string = UNDEFINED // "file/{mimetype}/{filename}"
+
+    @Column("tags", StringSetConverter)
+    public tags: string[] = UNDEFINED
+
+    @Column("metadata", ObjectConverter())
+    public metadata: { field: string } = UNDEFINED
 
     @Callback()
     updateFacets(operation: CallbackOperation, config: SessionConfig) {

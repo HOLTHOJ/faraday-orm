@@ -35,6 +35,9 @@ import {QueryInput} from "./TransactionCallback";
 import {ManagedFacet} from "./ManagedFacet";
 import {ManagedEntity} from "./ManagedEntity";
 import {EntityManager} from "../EntityManager";
+import {ManagedView} from "./ManagedView";
+import {ViewType} from "./ViewType";
+import {VIEW_DEF} from "../view/annotation/View";
 
 /**
  * General config object for the EntityManager.
@@ -49,6 +52,9 @@ export type EntityManagerConfig = {
 
     /** A map of (pre)loaded entity definitions. Each loaded entity is described as an Entity Type. */
     readonly entityDef: Map<string, EntityType>
+
+    /** A map of (pre)loaded view definitions. Each loaded view is described as a View Type. */
+    readonly viewDef: Map<string, ViewType>
 
     /** The default path generator for this entity manager. */
     readonly pathGenerator: PathGenerator,
@@ -69,7 +75,7 @@ export class EntityManagerImpl implements EntityManager {
     /**
      * The session keeps track of all the database calls made by this Entity manager instance.
      * The session is mapped one-to-one with the Entity manager instance, so if you want to execute operations
-     * in a different session (e.g. with a different user), then you need to create a new Entity manager instance.
+     * in a different session (e.g. with a different user), then you need to create a new EntityManager instance.
      *
      * @quote Hibernate (documentation/src/main/asciidoc/userguide/chapters/architecture/Architecture.adoc)
      *        "In JPA nomenclature, the Session is represented by an EntityManager."
@@ -117,7 +123,6 @@ export class EntityManagerImpl implements EntityManager {
     public async getItem<E extends object>(entity: E): Promise<E> {
         const key = new AttributeMapper();
         const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
-        // const record = EntityManager.internal(entity);
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -129,7 +134,7 @@ export class EntityManagerImpl implements EntityManager {
 
         const result = await this.transactionManager.getItem({record, key});
         if (typeof result.Item !== "undefined") {
-            return this.loadFromDB(record.entityType, result.Item).entity;
+            return this.loadEntityFromDB(record.entityType, result.Item).entity;
         } else {
             throw new EntityNotFoundException(record.entityType.def.name, key.toMap())
         }
@@ -143,25 +148,19 @@ export class EntityManagerImpl implements EntityManager {
      *
      * @return An iterable result set.
      */
-    public queryItem<E extends object>(entity: E, queryName?: string): ResultSet<E> {
+    public queryFacet<E extends object>(entity: E, queryName?: string): ResultSet<E> {
         const mapper = new ConditionMapper();
-        const defaultPathGenerator = this.config.pathGenerator;
-
         const facetProxy = new ManagedFacet(this.getEntityType(entity.constructor), entity, queryName);
-        // const facetProxy = FacetManager.internal(entity);
-        // const facetType = (typeof queryName !== "undefined")
-        //     ? this.getFacetType(facetProxy.entityType, queryName)
-        //     : FacetManager.getDefaultFacetType(facetProxy.entityType);
 
         // Compile the table keys.
-        facetProxy.compileKeys(defaultPathGenerator);
+        facetProxy.compileKeys(this.config.pathGenerator);
 
         // Extract the keys into a query condition.
         facetProxy.forEachId((id, value, valueIsSet) => {
             if (id.idType === "PK") {
                 mapper.eq(id, value)
             } else if (valueIsSet) {
-                // mapper.apply(facetType.operation, {name: this.entityManager.tableDef.facets[id.idType], converter: id.converter}, value);
+                mapper.apply(req(facetProxy.facetType).def.operation, id, value);
             }
         }, false);
 
@@ -172,7 +171,41 @@ export class EntityManagerImpl implements EntityManager {
         };
 
         return new ResultSet(queryInput, this.transactionManager,
-            (elt) => this.loadFromDB(facetProxy.entityType, elt).entity);
+            (elt) => this.loadEntityFromDB(facetProxy.entityType, elt).entity);
+    }
+
+    /**
+     * Queries a given facet query name.
+     *
+     * @param view
+     * @param queryName If queryName is empty, then we perform a findAll query on the DEFAULT index.
+     *
+     * @return An iterable result set.
+     */
+    public queryView<E extends object>(view: E, queryName?: string): ResultSet<E> {
+        const mapper = new ConditionMapper();
+        const facetProxy = new ManagedView(this.getViewType(view.constructor), view, queryName);
+
+        // Compile the table keys.
+        facetProxy.compileKeys(this.config.pathGenerator);
+
+        // Extract the keys into a query condition.
+        facetProxy.forEachId((id, value, valueIsSet) => {
+            if (id.idType === "PK") {
+                mapper.eq(id, value)
+            } else if (valueIsSet) {
+                mapper.apply(req(facetProxy.query).operation, id, value);
+            }
+        }, false);
+
+        const queryInput: QueryInput = {
+            indexName: facetProxy.viewType.indexName,
+            record: facetProxy,
+            item: mapper
+        };
+
+        return new ResultSet(queryInput, this.transactionManager,
+            (elt) => this.loadViewFromDB(facetProxy.viewType, elt).view);
     }
 
     /**
@@ -192,9 +225,8 @@ export class EntityManagerImpl implements EntityManager {
         const item = new AttributeMapper();
         const expected = new ExpectedMapper();
         const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
-        // const record = EntityManager.internal(entity);
 
-        // Verify that internal fields are not set.
+        // Verify that none of the internal fields are set.
         record.forEachCol((col, value, valueIsSet) => {
             if (valueIsSet && col.internal) {
                 throw new Error(`Not allowed to set internal field ${col.propName}.`);
@@ -203,7 +235,7 @@ export class EntityManagerImpl implements EntityManager {
 
         // Generate default values before calling callbacks.
         record.forEachCol((col, value, valueIsSet) => {
-            if (!valueIsSet && col.defaultValue) {
+            if (!valueIsSet && typeof col.defaultValue === "function") {
                 record.setValue(col.propName, col.defaultValue());
             }
         }, false);
@@ -215,9 +247,10 @@ export class EntityManagerImpl implements EntityManager {
         record.compileKeys(this.config.pathGenerator);
 
         // Extract the ID columns into the DB request.
+        // Add the ID columns to the expected map to ensure they are unique/new.
         record.forEachId((id, value) => {
-            expected.setExists(id, false);
             item.setValue(id, value);
+            expected.setExists(id, false);
         }, true);
 
         // Validates that the required columns have a value,
@@ -230,7 +263,7 @@ export class EntityManagerImpl implements EntityManager {
         item.setValue(EntityManagerImpl.TYPE_COLUMN, record.entityType.def.name);
 
         await this.transactionManager.putItem(record, item, expected);
-        return this.loadFromDB(record.entityType, item.toMap()).entity;
+        return this.loadEntityFromDB(record.entityType, item.toMap()).entity;
     }
 
     /**
@@ -276,7 +309,7 @@ export class EntityManagerImpl implements EntityManager {
         }, true);
 
         const data = await this.transactionManager.deleteItem(record, key, expected)
-        return this.loadFromDB(record.entityType, req(data.Attributes)).entity;
+        return this.loadEntityFromDB(record.entityType, req(data.Attributes)).entity;
     }
 
     /**
@@ -299,12 +332,11 @@ export class EntityManagerImpl implements EntityManager {
      */
     public async updateItem<E extends object>(entity: E, expectedEntity ?: E): Promise<E> {
         const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
-        // const record = EntityManager.internal(entity);
-        const expected = new ManagedEntity(expectedEntity ? this.getEntityType(expectedEntity.constructor) : record.entityType, expectedEntity);
-        // const expected = EntityManager.internal(expectedEntity || this.load(record.entityType));
+        const expected = expectedEntity && new ManagedEntity(this.getEntityType(expectedEntity.constructor), expectedEntity)
 
         // Validate that record & expected are the same type.
-        if (record.entityType !== expected.entityType) throw new Error(`Inconsistent types.`);
+        if (typeof expected !== "undefined" && record.entityType !== expected.entityType)
+            throw new Error(`Inconsistent types.`);
 
         const item = new AttributeMapper();
         const exp = new ExpectedMapper();
@@ -317,8 +349,8 @@ export class EntityManagerImpl implements EntityManager {
             if (valueIsSet && col.internal) exp.setValue(col, "EQ", value);
         }, false);
 
-        // Mark the expected record columns as expected.
-        expected.forEachCol((col, value, valueIsSet) => {
+        // Mark the expected record's columns (if any) as expected.
+        expected?.forEachCol((col, value, valueIsSet) => {
             if (valueIsSet) exp.setValue(col, "EQ", value);
         }, false)
 
@@ -343,7 +375,7 @@ export class EntityManagerImpl implements EntityManager {
         item.setValue(EntityManagerImpl.TYPE_COLUMN, record.entityType.def.name);
 
         await this.transactionManager.updateItem(record, item, exp)
-        return this.loadFromDB(record.entityType, item.toMap()).entity;
+        return this.loadEntityFromDB(record.entityType, item.toMap()).entity;
     }
 
     /**
@@ -358,14 +390,13 @@ export class EntityManagerImpl implements EntityManager {
      *
      * @return A new entity instance containing the given attribute values.
      */
-    public loadFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): ManagedEntity<E> {
+    public loadEntityFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): ManagedEntity<E> {
         const item = new AttributeMapper(data);
         if (entityType.def.name !== item.getRequiredValue(EntityManagerImpl.TYPE_COLUMN)) {
             throw new Error(`Unexpected record type ${entityType}.`);
         }
 
         const entity = new ManagedEntity(entityType)
-        // const entity = this.load(entityType);
         entity.forEachId((id) => {
             entity.setValue(id.propName, item.getValue(id));
         }, false);
@@ -384,6 +415,40 @@ export class EntityManagerImpl implements EntityManager {
         entity.parseKeys(this.config.pathGenerator);
 
         return entity;
+    }
+
+    public loadViewFromDB<V extends object>(viewType: ViewType<V>, data: DynamoDB.AttributeMap): ManagedView<V> {
+        const item = new AttributeMapper(data);
+        const view = new ManagedView(viewType);
+
+        // We always load the keys regardless of projected attributes.
+        view.forEachId((id) => {
+            view.setValue(id.propName, item.getRequiredValue(id));
+        }, false);
+
+        // If all attributes are projected, we can load all sources into the view.
+        if (view.viewType.indexProjections === "ALL") {
+            const entityType = this.getEntityType(data);
+            const viewSource = view.getViewSource(entityType.def);
+
+            if (typeof viewSource === "undefined") {
+                console.warn(`Entity type ${entityType.def.name} not defined as a source on view ${viewType.ctor.name}.`);
+            } else {
+                const entity = this.loadEntityFromDB(entityType, data);
+                if (!view.loadSource(viewSource, entity, false)) {
+                    console.warn(`Unable to load entity ${entity.entityType.def.name} as a source on view ${viewType.ctor.name}.`);
+                }
+            }
+        }
+
+        // If only custom attributes are projected, then load in the attributes that are annotated.
+        if (view.viewType.indexProjections === "INCLUDE") {
+            view.forEachColumn((col => {
+                view.setValue(col.propName, item.getValue({name: col.name, converter: col.converter}));
+            }));
+        }
+
+        return view;
     }
 
     /***************************************************************************************
@@ -414,6 +479,18 @@ export class EntityManagerImpl implements EntityManager {
             const item = new AttributeMapper(entity);
             const type = item.getRequiredValue(EntityManagerImpl.TYPE_COLUMN);
             return req(this.config.entityDef.get(type), `Invalid entity type name ${entity}.`);
+        }
+    }
+
+    public getViewType<E extends object = any>(entity: string | Class<E> | Function | DynamoDB.AttributeMap): ViewType<E> {
+        if (typeof entity === "string") {
+            return req(this.config.viewDef.get(entity), `Invalid entity type name ${entity}.`);
+        } else if (typeof entity === "function") {
+            return req(this.config.viewDef.get(req(VIEW_DEF.get(entity)).name), `Invalid view type ${entity}.`);
+        } else {
+            const item = new AttributeMapper(entity);
+            const type = item.getRequiredValue(EntityManagerImpl.TYPE_COLUMN);
+            return req(this.config.viewDef.get(type), `Invalid entity type name ${entity}.`);
         }
     }
 

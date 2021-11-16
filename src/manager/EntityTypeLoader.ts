@@ -30,7 +30,7 @@ import {EntityType} from "./EntityType";
 import {FACET_DEF} from "../annotation/Facet";
 import {loadFacet} from "./FacetTypeLoader";
 
-export function loadEntityDefs(tableDef: TableDef): Map<string, EntityType> {
+export function loadEntityTypes(tableDef: TableDef): Map<string, EntityType> {
     return tableDef.entities.reduce((map, elt) => {
         const entityDef = req(ENTITY_DEF.get(elt));
 
@@ -46,6 +46,13 @@ export function loadEntityDefs(tableDef: TableDef): Map<string, EntityType> {
     }, new Map<string, EntityType>())
 }
 
+/**
+ * Loads a given entity definition for a given table definition.
+ *
+ * @param entityDef
+ * @param tableDef
+ * @param ctor
+ */
 export function loadEntity<E extends object>(entityDef: EntityDef, tableDef: TableDef, ctor: Class<E>): EntityType {
     const cols = ENTITY_COLS.get(ctor) || [];
     const ids = ENTITY_IDS.get(ctor) || [];
@@ -67,11 +74,11 @@ export function loadEntity<E extends object>(entityDef: EntityDef, tableDef: Tab
     }
 
     const pkId = single(ids.filter(elt => elt.idType === "PK"), `Missing required PK Id Column.`);
-    const pk = {...pkId, name: tableDef.ids["PK"], exposed: true, internal: false, required: true};
+    const pk = {...pkId, name: req(tableDef.ids["PK"]), exposed: true, internal: false, required: true};
     ex.push({propName: pkId.propName, exposed: true})
 
     const skId = one(ids.filter(elt => elt.idType === "SK"), `Illegal SK Id Column configuration.`);
-    const sk = skId && {...skId, name: tableDef.ids["SK"], exposed: true, internal: false, required: true};
+    const sk = skId && {...skId, name: req(tableDef.ids["SK"]), exposed: true, internal: false, required: true};
     if (skId) ex.push({propName: skId.propName, exposed: true})
 
     const entityCols = unique(cols, col => col.name, true, `Duplicate column names not allowed.`);
@@ -85,7 +92,7 @@ export function loadEntity<E extends object>(entityDef: EntityDef, tableDef: Tab
     })
 
     // Enhance classes with ToJSON override.
-    ctor.prototype.toJSON = function(key ?: string) {
+    ctor.prototype.toJSON = function (key ?: string) {
         const json = {} as any
 
         ex.forEach(elt => {

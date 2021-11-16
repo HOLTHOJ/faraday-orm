@@ -41,7 +41,7 @@ export const DEFAULT_KEY_GENERATOR = () => Keyable.generateUUID();
  * we cannot provide a generic way to represent this ID.
  *
  * Instead this base class will generate a near-perfect UUID and store it in an instance property.
- * Subclasses can then use this field as their Id or as a part of their composite Id.
+ * Subclasses can then use this field as their Id or as a part of their keypath.
  *
  * The generated Id will start with a Time-based component which provides a natural ordering if it is used as SK.
  * The default Id generator function can be overridden by providing a custom generator in the constructor.
@@ -49,16 +49,16 @@ export const DEFAULT_KEY_GENERATOR = () => Keyable.generateUUID();
  * Example of using the ID in a record;
  * <pre>
  *     @Entity("Article", {pkPath: ":account/article", skPath: ":_id"})
- *     export class DBArticle extends Keyable {}
+ *     export class Article extends Keyable {}
  * </pre>
  *
  * Example of using the ID as a composite key;
  * <pre>
- *     @Entity("Article", {pkPath: ":account/news", skPath: "article/:_id"})
- *     export class DBArticle extends Keyable {}
+ *     @Entity("Article", {pkPath: ":account/article", skPath: ":_id"})
+ *     export class Article extends Keyable {}
  *
- *     @Entity("Blog", {pkPath: ":account/news", skPath: "blog/:_id"})
- *     export class DBBlog extends Keyable {}
+ *     @Entity("Comment", {pkPath: ":account/comment", skPath: ":article_id/:_id"})
+ *     export class Comment extends Keyable {}
  * </pre>
  *
  */
@@ -70,7 +70,7 @@ export abstract class Keyable {
      */
     public _id: string = UNDEFINED;
 
-    private readonly _generator: KeyGenerator;
+    public readonly _generator: KeyGenerator;
 
     protected constructor(options?: KeyableOptions) {
         this._generator = def(options?.generator, DEFAULT_KEY_GENERATOR);

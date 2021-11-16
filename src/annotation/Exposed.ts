@@ -16,12 +16,15 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+import {unique} from "../util/Req";
+
 /** The definition. */
 export type ExposedDef = {
 
     /** The property name. */
     propName: string,
 
+    /** Exposes this property or not. */
     exposed: boolean,
 
 };
@@ -36,7 +39,7 @@ export const ENTITY_EXPOSED = new Map<Function, ExposedDef[]>();
  *  - all @Id and @Column properties are exposed
  *  - all other local class properties are not exposed
  *
- * All these defaults can be override by applying this annotation with exposed TRUE/FALSE parameter.
+ * These defaults can be overridden by applying this annotation with exposed TRUE/FALSE parameter.
  */
 export function Exposed<T>(exposed: boolean = true) {
     return (target: any, propertyKey: string) => {
@@ -47,7 +50,10 @@ export function Exposed<T>(exposed: boolean = true) {
         };
 
         if (ENTITY_EXPOSED.has(target.constructor)) {
-            ENTITY_EXPOSED.get(target.constructor)!.push(exposedDef);
+            const exposeds = ENTITY_EXPOSED.get(target.constructor)!.concat(exposedDef);
+            unique(exposeds, elt => elt.propName, true);
+
+            ENTITY_EXPOSED.set(target.constructor, exposeds);
         } else {
             ENTITY_EXPOSED.set(target.constructor, [exposedDef]);
         }

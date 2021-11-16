@@ -18,6 +18,7 @@
 
 import {DynamoDB} from "aws-sdk";
 import {Class} from "../../util/Class";
+import {PathGenerator} from "../../util/KeyPath";
 
 /**
  * The query definition.
@@ -25,8 +26,9 @@ import {Class} from "../../util/Class";
 export type ViewQueryDef<E extends object = any> = {
     ctor: Class<E>,
     name: string,
-    pk: string,
-    sk?: string,
+    pkPath: string,
+    skPath?: string,
+    pathGenerator?: PathGenerator
     // params: FacetParamDef[],
     operation: ViewQueryOperation,
     // variables: string[],
@@ -61,8 +63,8 @@ export function ViewQuery(name: string, pkPath: string, skPath?: string, op ?: V
         const facetDef: ViewQueryDef = {
             ctor: ctor,
             name: name,
-            pk: pkPath,
-            sk: skPath,
+            pkPath: pkPath,
+            skPath: skPath,
             operation: op || "EQ",
         };
 

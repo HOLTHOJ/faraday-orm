@@ -67,6 +67,9 @@ export type EntityOptions = {
  */
 export function Entity<E extends object>(typeName: string, keyPath ?: KeyPath, options?: EntityOptions): (ctor: Class<E>) => void {
     return (ctor) => {
+        if (ENTITY_DEF.has(ctor)) throw new Error(`Only one entity configuration allowed per class.`);
+        if (ENTITY_REPO.has(typeName)) throw new Error(`Only one entity configuration allowed per type name.`);
+
         const entityDef: EntityDef = {
             ctor: ctor,
             name: typeName,
@@ -78,6 +81,7 @@ export function Entity<E extends object>(typeName: string, keyPath ?: KeyPath, o
         };
 
         ENTITY_DEF.set(ctor, entityDef);
+        ENTITY_REPO.set(typeName, entityDef);
     }
 }
 

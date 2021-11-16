@@ -16,6 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+import {unique} from "../util/Req";
+
 /** The operation during which this callback is called. */
 export type CallbackOperation = "INSERT" | "UPDATE" | "DELETE";
 
@@ -46,7 +48,10 @@ export function Callback() {
         const callbackDef: CallbackDef = {propName: propertyKey};
 
         if (ENTITY_CALLBACKS.has(target.constructor)) {
-            ENTITY_CALLBACKS.get(target.constructor)!.push(callbackDef);
+            const callbacks = ENTITY_CALLBACKS.get(target.constructor)!.concat(callbackDef);
+            unique(callbacks, elt => elt.propName, true);
+
+            ENTITY_CALLBACKS.set(target.constructor, callbacks);
         } else {
             ENTITY_CALLBACKS.set(target.constructor, [callbackDef]);
         }

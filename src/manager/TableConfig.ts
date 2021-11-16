@@ -20,6 +20,7 @@ import {IdType} from "../annotation/Id";
 import {FacetIdType} from "../annotation/FacetId";
 import {Class} from "../util";
 import * as fs from "fs";
+import {ViewProjectedType} from "../view";
 
 export type TableConfig = { [tableName: string]: TableDef }
 
@@ -28,11 +29,17 @@ export interface TableDef {
     /** All managed classes. */
     entities: Class[],
 
+    /** All managed view classes. */
+    views: Class[],
+
     /** Mapping of id type and column name. */
-    ids: { [id in IdType]: string }
+    ids: { [id in IdType]?: string }
 
     /** Mapping of facet id type and LSI index name. */
     facets: { [id in FacetIdType]: { index: string, column: string } }
+
+    /** Global secondary index definitions. */
+    indexes: { [index: string]: { ids: { [id in IdType]?: string }, projection: ViewProjectedType } }
 
 }
 

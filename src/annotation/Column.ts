@@ -17,6 +17,8 @@
  */
 
 import {Converter} from "../converter";
+import {unique} from "../util/Req";
+import {DEFAULT_CONVERTER} from "../converter/Converter";
 
 /**
  * The definition of a database column defined on an Entity class.
@@ -57,7 +59,7 @@ export const ENTITY_COLS = new Map<Function, ColumnDef[]>();
  * @param required          Will validate the value of this column before storing it in the database.
  * @param defaultValue      Generates a default value in case no value is provided.
  */
-export function Column<T>(columnName: string, columnConverter: Converter<T>, required ?: boolean, defaultValue ?: () => T) {
+export function Column<T>(columnName: string, columnConverter: Converter<T> = DEFAULT_CONVERTER, required ?: boolean, defaultValue ?: () => T) {
     return (target: object, propertyKey: string, descriptor ?: TypedPropertyDescriptor<T>) => {
 
         const columnDef: ColumnDef<T> = {
@@ -70,7 +72,10 @@ export function Column<T>(columnName: string, columnConverter: Converter<T>, req
         };
 
         if (ENTITY_COLS.has(target.constructor)) {
-            ENTITY_COLS.get(target.constructor)!.push(columnDef);
+            const columns = ENTITY_COLS.get(target.constructor)!.concat(columnDef);
+            unique(columns, elt => elt.propName, true);
+
+            ENTITY_COLS.set(target.constructor, columns);
         } else {
             ENTITY_COLS.set(target.constructor, [columnDef]);
         }

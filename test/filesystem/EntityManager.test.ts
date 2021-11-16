@@ -34,8 +34,10 @@ describe("test/filesystem", () => {
         fileToCreate.account = "acme";
         fileToCreate.directory = "root";
         fileToCreate.fileName = "test-file-" + rand;
+        fileToCreate.tags = ["red", "green"];
+        fileToCreate.metadata = {field: "custom_field"};
 
-        console.log("File to create", fileToCreate)
+        console.log("File to create", JSON.stringify(fileToCreate))
 
         const createdFile = await entityManager.createItem(fileToCreate);
         console.log("Created file", JSON.stringify(createdFile));

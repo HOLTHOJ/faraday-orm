@@ -18,7 +18,7 @@
 
 import {FACET_IDS} from "../annotation/FacetId";
 import {def, req, single} from "../util/Req";
-import {DEFAULT, FACET_DEF, FacetDef} from "../annotation/Facet";
+import {DEFAULT_FACET, FACET_DEF, FacetDef} from "../annotation/Facet";
 import {TableDef} from "./TableConfig";
 import {ENTITY_DEF, EntityDef} from "../annotation/Entity";
 import {Class} from "../util";
@@ -37,7 +37,7 @@ export function loadFacetDefs(tableDef: TableDef): Map<string, FacetType[]> {
 }
 
 export function loadFacet<E extends object>(entityDef: EntityDef, facetDef: FacetDef, tableDef: TableDef, ctor: Class<E>): FacetType {
-    if (facetDef.indexName === DEFAULT) return {def: facetDef};
+    if (facetDef.indexName === DEFAULT_FACET) return {def: facetDef};
 
     const ids = FACET_IDS.get(ctor) || [];
 

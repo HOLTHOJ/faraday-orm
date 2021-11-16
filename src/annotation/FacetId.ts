@@ -16,37 +16,42 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-/** The type of id column. Only 8 LSI indexes are allowed atm. */
-export type FacetIdType = "LSI1" | "LSI2" | "LSI3" | "LSI4" | "LSI5" | "LSI6" | "LSI7" | "LSI8";
+import {unique} from "../util/Req";
+
+/**
+ * The type of id column.
+ * At the moment only 8 LSI indexes are allowed by AWS.
+ * We added the string type to the list as well to be future-compatible.
+ */
+export type FacetIdType = "LSI1" | "LSI2" | "LSI3" | "LSI4" | "LSI5" | "LSI6" | "LSI7" | "LSI8" | string;
 
 /** The column definition for this FacetId column. */
 export type FacetIdDef = {
     propName: PropertyKey,
     facetIdType: FacetIdType,
-    // indexName: string,
 };
 
 /** @internal Repository of all ids and the constructor function on which they are defined. */
 export const FACET_IDS = new Map<Function, FacetIdDef[]>();
 
 /**
- * Defines an ID column in the DB row.
+ * Defines the SK ID column for a Facet (LSI) index.
  *
- * @param facetName
- * @param indexName
+ * @param idType Which LSI Facet this id is used for.
  */
-export function FacetId(idType: FacetIdType, ) {
+export function FacetId(idType: FacetIdType,) {
     return (target: any, propertyKey: PropertyKey) => {
 
         const facetIdDef: FacetIdDef = {
             propName: propertyKey,
-            facetIdType: idType,
-            // facetName: facetName,
-            // indexName: indexName,
+            facetIdType: idType
         };
 
         if (FACET_IDS.has(target.constructor)) {
-            FACET_IDS.get(target.constructor)!.push(facetIdDef);
+            const facetIds = FACET_IDS.get(target.constructor)!.concat(facetIdDef);
+            unique(facetIds, elt => elt.facetIdType, true);
+
+            FACET_IDS.set(target.constructor, facetIds);
         } else {
             FACET_IDS.set(target.constructor, [facetIdDef]);
         }

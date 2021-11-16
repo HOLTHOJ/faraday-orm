@@ -17,16 +17,16 @@
  */
 
 import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../../src/view";
-import {UNDEFINED} from "../../../../src/util/Undefined";
-import {DBFile} from "../../model/DBFile";
-import {DBFolder} from "../../model/DBFolder";
+import {UNDEFINED} from "../../../../src/util";
+import DBFile from "../../model/DBFile";
+import DBFolder from "../../model/DBFolder";
 
 /**
  * A View that lists all the files and folders inside a directory, ordered by name.
  * Folders and files are not separated and are all shown in the same ordering.
  *
- * Note: Filed and folders are already sorted by name using their SK,
- * this view merely merges them together in one single view.
+ * Note: Files and folders are already sorted by name using their SK,
+ * this view simply merges them together in one single ordered view.
  */
 @View("default")
 @ViewQuery("list-all", ":account/:directory")

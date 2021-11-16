@@ -17,7 +17,7 @@
  */
 
 import {Callback, CallbackOperation, Column, Internal} from "./index";
-import {DateNumberConverter, StringConverter} from "../converter";
+import {DateStringConverter, StringConverter} from "../converter";
 import {UNDEFINED} from "../util";
 import {Versionable, VersionableOptions} from "./Versionable";
 import {SessionConfig} from "../manager/SessionManager";
@@ -29,14 +29,14 @@ export type EditableOptions = VersionableOptions & {}
  * An editable record.
  *
  * When a record is editable we usually want to track who and when the record was created and by who and when it was
- * last edited. This model class provides the necessary fields to track this information, and it also takes care of
- * setting and updating these fields using a @Callback. The create user and update user are retrieved from the
- * EntityManager performing the insert or update.
+ * last modified. This model class provides the necessary fields to track this information, and it also takes care of
+ * setting and updating these fields using a @Callback. The create_user and update_user are retrieved from the
+ * EntityManager session performing the insert or update.
  */
 export abstract class Editable extends Versionable {
 
     @Internal()
-    @Column("$ct", DateNumberConverter, true)
+    @Column("$ct", DateStringConverter, true)
     public _createTime: Date = UNDEFINED;
 
     @Internal()
@@ -44,14 +44,14 @@ export abstract class Editable extends Versionable {
     public _createUser: string = UNDEFINED;
 
     @Internal()
-    @Column("$ut", DateNumberConverter, true)
+    @Column("$ut", DateStringConverter, true)
     public _updateTime: Date = UNDEFINED;
 
     @Internal()
     @Column("$uu", StringConverter, true)
     public _updateUser: string = UNDEFINED;
 
-    constructor(options ?: EditableOptions) {
+    protected constructor(options ?: EditableOptions) {
         super(options);
     }
 
@@ -64,6 +64,7 @@ export abstract class Editable extends Versionable {
                 this._createUser = config.user;
             // Fallthrough on purpose
             case "UPDATE":
+            case "DELETE": // This is a no-op if the entity is deleted.
                 this._updateTime = now;
                 this._updateUser = config.user;
         }

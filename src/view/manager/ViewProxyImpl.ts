@@ -120,7 +120,7 @@ export function createViewProxy(viewType: ViewType): { new(): ViewProxy } {
         }
 
         compileKeys(generator: PathGenerator, query: ViewQueryDef): void {
-            this._compileKeys(generator, req(query.pk), query.sk);
+            this._compileKeys(generator, req(query.pkPath), query.skPath);
         }
 
         _compileKeys(generator: PathGenerator, pkPath: string, skPath ?: string): void {

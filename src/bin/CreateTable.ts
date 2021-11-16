@@ -28,10 +28,10 @@ export default async function (config: EntityManagerConfig) {
     const createTableInput: DynamoDB.Types.CreateTableInput = {
         TableName: config.tableName,
         AttributeDefinitions: [
-            {AttributeName: tableDef.ids["PK"], AttributeType: "S"},
+            {AttributeName: req(tableDef.ids["PK"]), AttributeType: "S"},
         ],
         KeySchema: [
-            {KeyType: "HASH", AttributeName: tableDef.ids["PK"]},
+            {KeyType: "HASH", AttributeName: req(tableDef.ids["PK"])},
         ],
     };
 
@@ -45,7 +45,7 @@ export default async function (config: EntityManagerConfig) {
             createTableInput.AttributeDefinitions.push({AttributeName: index.column, AttributeType: "S"});
             createTableInput.LocalSecondaryIndexes?.push({
                 IndexName: index.index, Projection: {ProjectionType: "ALL"}, KeySchema: [
-                    {KeyType: "HASH", AttributeName: tableDef.ids["PK"]},
+                    {KeyType: "HASH", AttributeName: req(tableDef.ids["PK"])},
                     {KeyType: "RANGE", AttributeName: index.column},
                 ]
             })

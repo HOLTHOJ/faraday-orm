@@ -16,10 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {VIEW_IDS, ViewIdColumnDef} from "./ViewId";
-import {VIEW_SOURCE_DEF, ViewSourceDef} from "./ViewSource";
-import {VIEW_COLUMN_DEFS, ViewColumnDef} from "./ViewColumn";
-import {one, single} from "../../util/Req";
+import {ViewIdColumnDef} from "./ViewId";
+import {ViewSourceDef} from "./ViewSource";
+import {ViewColumnDef} from "./ViewColumn";
 import {Class} from "../../util";
 import {TransactionManager} from "../../manager/TransactionManager";
 import {EntityDef} from "../../entity";
@@ -36,10 +35,15 @@ export type ViewIndexType = "default" | "LSI" | "GSI";
 export type ViewProjectedType = DynamoDB.ProjectionType;
 
 /** The view definitions for each class. */
-export const VIEW_DEF = new Map<Function, ViewType>();
+export const VIEW_DEF = new Map<Function, ViewDef>();
 
 /** A reverse mapping from the View Source entity type to their owning View Type. */
 export const VIEW_SOURCE_ENTITIES = new Map<EntityDef, ViewType[]>();
+
+export type ViewDef = {
+    readonly name: string,
+    readonly indexName: string,
+}
 
 /** A view definition which configures an object into a View. */
 export type ViewType<V extends object = object> = {
@@ -90,72 +94,30 @@ export type ViewType<V extends object = object> = {
 
 };
 
-/**
- * Creates a View on the table itself (not on an index).
- *
- * Make sure that the @ViewId column names correspond to the PK and SK column names,
- * otherwise the queries will throw a DynamoDB exception.
- *
- * @param indexType Default
- */
-export function View(indexType: "default"): (ctor: Class) => any;
 
 /**
- * Creates a View on the given index name.
+ * Creates a View for the given index name.
  *
- * @param indexType The type of index (LSI/GSI) as defined on the table.
- *                  This value is not used during querying or loading,
- *                  but will be used when validating the table definition with the model.
+ * @param viewName
  * @param indexName The name of the index. Will be used when querying.
- * @param projected The projected attributes as defined on the table.
- *                  This value will be used to validate the table definition,
- *                  but also to determine which values to return as the View's results.
  */
-export function View(indexType: ViewIndexType, indexName: string, projected?: ViewProjectedType): (ctor: Class) => any;
+export function View(viewName: string, indexName: string): (ctor: Class) => any;
 
 /**
  * @internal Implementation of the two public overloaded methods.
  */
-export function View(indexType: ViewIndexType, indexName?: string, projected: ViewProjectedType = "PROJECTED_ALL") {
+export function View(viewName: string, indexName: string) {
     return (ctor: { new(...args: any[]): {} }) => {
-        const i = VIEW_IDS.get(ctor) || [];
-        const s = VIEW_SOURCE_DEF.get(ctor) || [];
-        const c = VIEW_COLUMN_DEFS.get(ctor) || [];
 
-        let proto = Object.getPrototypeOf(ctor);
-        while (proto) {
-            i.push(...(VIEW_IDS.get(proto) || []));
-            s.push(...(VIEW_SOURCE_DEF.get(proto) || []));
-            c.push(...(VIEW_COLUMN_DEFS.get(proto) || []));
+        if (VIEW_DEF.has(ctor)) throw new Error(`Only one view configuration allowed per class.`);
 
-            proto = Object.getPrototypeOf(proto);
-        }
-
-        const viewDef: ViewType = {
-            ctor: ctor,
-            indexType: indexType,
-            indexProjections: projected,
+        const viewDef: ViewDef = {
+            name: viewName,
             indexName: indexName,
-            sources: s,
-            columns: c,
-            pk: single(i.filter(elt => elt.idType === "PK")),
-            sk: one(i.filter(elt => elt.idType === "SK")),
         };
-
-        if (VIEW_DEF.has(ctor)) {
-            throw new Error(`Only one view configuration allowed per class.`);
-        }
 
         // viewDef.ctor = createViewProxy(viewDef.ctor, viewDef);
         VIEW_DEF.set(ctor, viewDef);
-
-        s.forEach(elt => {
-            if (VIEW_SOURCE_ENTITIES.has(elt.entityType)) {
-                VIEW_SOURCE_ENTITIES.get(elt.entityType)!.push(viewDef);
-            } else {
-                VIEW_SOURCE_ENTITIES.set(elt.entityType, [viewDef]);
-            }
-        })
     }
 }
 

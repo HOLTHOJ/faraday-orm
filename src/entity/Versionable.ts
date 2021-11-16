@@ -36,13 +36,13 @@ export type VersionableOptions = KeyableOptions & {
 /**
  * An versionable record.
  *
- * Versionable records always have a version field the enable optimistic locking at database level. This model class
+ * Versionable records always have a version field that enable optimistic locking at database level. This model class
  * takes care of setting the initial version number for INSERT operations, as well as incrementing the version number
  * for UPDATE operations.
  *
  * This model class makes use of the @Internal column functionality to enforce optimistic locking. i.e. the _version
  * column will always be included as an "Expected" parameter in the DynamoDB requests so you can only update a record
- * if your version matches the one in the database.
+ * if your version matches the one currently in the database.
  *
  * @see Internal
  */
@@ -76,7 +76,7 @@ export abstract class Versionable extends Keyable {
     @Callback()
     validateVersion(action: CallbackOperation) {
         if (action === "DELETE" && (Number.isNaN(Number(this._version)) || Number(this._version) < this.versionNew)) {
-            throw new Error(`Deleting a Versionable entity requires a version.`);
+            throw new Error(`Deleting a Versionable entity requires a valid version.`);
         }
     }
 }

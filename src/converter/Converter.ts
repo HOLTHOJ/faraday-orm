@@ -17,6 +17,8 @@
  */
 
 import {DynamoDB} from "aws-sdk";
+import {Converter as DynamodDBConverter} from "aws-sdk/clients/dynamodb";
+import {ObjectSerializer} from "./ObjectConverter";
 
 /**
  * A DynamoDB converter to convert javascript data types from/to DynamoDB Attribute types.
@@ -42,4 +44,16 @@ export type Converter<T> = {
      */
     convertTo(value: T | undefined): DynamoDB.AttributeValue | undefined;
 
+}
+
+/**
+ * The default DynamoDB Javascript converter.
+ */
+export const DEFAULT_CONVERTER : Converter<any> = {
+    convertFrom: value => {
+        return DynamodDBConverter.output(value!)
+    },
+    convertTo: data => {
+        return DynamodDBConverter.input(data)
+    }
 }

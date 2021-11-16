@@ -18,6 +18,7 @@
 
 import {DynamoDB} from "aws-sdk";
 import {Converter} from "./Converter";
+import {Converter as DynamodDBConverter} from "aws-sdk/clients/dynamodb";
 
 /**
  * A serializer to store and load a DynamoDB AttributeMap into a Javascript object.
@@ -28,9 +29,21 @@ export type ObjectSerializer<T extends object> = {
 }
 
 /**
+ * The default DynamoDB Javascript converter.
+ */
+export const DEFAULT_SERIALIZER: ObjectSerializer<any> = {
+    load: data => {
+        return DynamodDBConverter.unmarshall(data)
+    },
+    save: data => {
+        return DynamodDBConverter.marshall(data)
+    }
+}
+
+/**
  * A DynamoDB converter for storing objects as M attributes.
  */
-export const ObjectConverter = <T extends object>(type: ObjectSerializer<T>): Converter<T> => {
+export const ObjectConverter = <T extends object>(type: ObjectSerializer<T> = DEFAULT_SERIALIZER): Converter<T> => {
 
     return {
         convertFrom(value: DynamoDB.AttributeValue | undefined): T | undefined {

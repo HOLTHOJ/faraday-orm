@@ -17,9 +17,9 @@
  */
 
 import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../../src/view";
-import {UNDEFINED} from "../../../../src/util/Undefined";
-import {DBFile} from "../../model/DBFile";
-import {DBFolder} from "../../model/DBFolder";
+import {UNDEFINED} from "../../../../src/util";
+import DBFile from "../../model/DBFile";
+import DBFolder from "../../model/DBFolder";
 
 /**
  * A View that lists all the files and folders inside a directory, ordered by mime type.

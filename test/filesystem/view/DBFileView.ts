@@ -16,9 +16,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {DBFile} from "../model/DBFile";
 import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../src/view";
-import {UNDEFINED} from "../../../src/util/Undefined";
+import {UNDEFINED} from "../../../src/util";
+import DBFile from "../model/DBFile";
 
 @View("default")
 @ViewQuery("listAll", ":account/:directory", "file/", "BEGINS_WITH")
@@ -38,7 +38,7 @@ export class DBFileView {
     public file: DBFile = UNDEFINED;
 
     @ViewSource(DBFile, {pkPath: ":account/:directory", skPath: "file/"})
-    public loadFile(value: DBFile) : boolean {
+    public loadFile(value: DBFile): boolean {
         this.file = value;
         this.account = value.account;
         this.directory = value.directory;

@@ -22,9 +22,10 @@ import {PathGenerator} from "./util/KeyPath";
 import {LogLevel, SessionConfig} from "./manager/SessionManager";
 import {req} from "./util/Req";
 import {PathToRegexpPathGenerator} from "./util/PathToRegexpPathGenerator";
-import {loadEntityDefs} from "./manager/EntityTypeLoader";
+import {loadEntityTypes} from "./manager/EntityTypeLoader";
 import {Class} from "./util";
 import {EntityManagerConfig, EntityManagerImpl} from "./manager/EntityManagerImpl";
+import {loadViewTypes} from "./manager/ViewTypeLoader";
 
 export type EntityManagerFactoryInput = {
 
@@ -86,7 +87,8 @@ export class EntityManagerFactory {
         const entityManagerConfig: EntityManagerConfig = {
             tableName: tableName,
             tableDef: tableDef,
-            entityDef: loadEntityDefs(tableDef),
+            entityDef: loadEntityTypes(tableDef),
+            viewDef: loadViewTypes(tableDef),
             pathGenerator: pathGenerator,
         }
 

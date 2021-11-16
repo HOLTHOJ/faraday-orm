@@ -18,6 +18,7 @@
 
 import {Converter, StringConverter} from "../converter";
 import {ColumnDef} from "./Column";
+import {unique} from "../util/Req";
 
 /** The type of id column. PK = Partition Key, SK = Sort Key. */
 export type IdType = "PK" | "SK";
@@ -44,16 +45,19 @@ export const ENTITY_IDS = new Map<Function, IdDef[]>();
 export function Id(idType: IdType, columnConverter: Converter<string> = StringConverter) {
     return (target: any, propertyKey: string) => {
 
-        const columnDef: IdDef = {
+        const idDef: IdDef = {
             propName: propertyKey,
             converter: columnConverter,
             idType: idType,
         };
 
         if (ENTITY_IDS.has(target.constructor)) {
-            ENTITY_IDS.get(target.constructor)!.push(columnDef);
+            const ids = ENTITY_IDS.get(target.constructor)!.concat(idDef);
+            unique(ids, elt => `${elt.propName}%${elt.idType}`, true);
+
+            ENTITY_IDS.set(target.constructor, ids);
         } else {
-            ENTITY_IDS.set(target.constructor, [columnDef]);
+            ENTITY_IDS.set(target.constructor, [idDef]);
         }
     }
 }

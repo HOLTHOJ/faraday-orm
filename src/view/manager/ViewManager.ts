@@ -142,7 +142,7 @@ export class ViewManager {
             if (typeof viewSource === "undefined") {
                 console.warn(`Entity type ${entityType.def.name} not defined as a source on view ${viewType.ctor.name}.`);
             } else {
-                const entity = this.entityManager.loadFromDB(entityType, data);
+                const entity = this.entityManager.loadEntityFromDB(entityType, data);
                 if (!view.loadSource(viewSource, entity, false)) {
                     console.warn(`Unable to load entity ${entity.entityType.def.name} as a source on view ${viewType.ctor.name}.`);
                 }
@@ -165,7 +165,8 @@ export class ViewManager {
      * @param view
      */
     static getViewType<V extends object>(view: Class<V> | Function): ViewType<V> {
-        return req(VIEW_DEF.get(view) as ViewType<V>, `Class ${view} is not a View class.`);
+        throw "Error";
+        // return req(VIEW_DEF.get(view) as ViewType<V>, `Class ${view} is not a View class.`);
     }
 
     /**
