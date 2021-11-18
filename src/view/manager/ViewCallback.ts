@@ -31,7 +31,7 @@ import {ViewProxy} from "./ViewProxy";
 import {VIEW_SOURCE_ENTITIES} from "../annotation/View";
 import {TransactionFactory} from "../../manager/TransactionFactory";
 import {req} from "../../util/Req";
-import {ManagedEntity} from "../../manager/ManagedEntity";
+import {EntityTypeProx} from "../../manager/ManagedEntity";
 import {EntityManagerConfig} from "../../manager/EntityManagerImpl";
 
 export class ViewTransactionFactory implements TransactionFactory {
@@ -58,21 +58,21 @@ class ViewCallback implements TransactionCallback {
         return chain.query(input);
     }
 
-    deleteItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput> {
+    deleteItem<E extends object>(chain: TransactionCallbackChain, record: EntityTypeProx<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput> {
         return chain.deleteItem(record, item, expected);
     }
 
-    putItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
+    putItem<E extends object>(chain: TransactionCallbackChain, record: EntityTypeProx<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
         this.setViewIndexColumns(record, item, expected);
         return chain.putItem(record, item, expected);
     }
 
-    updateItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
+    updateItem<E extends object>(chain: TransactionCallbackChain, record: EntityTypeProx<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput> {
         this.setViewIndexColumns(record, item, expected);
         return chain.updateItem(record, item, expected);
     }
 
-    private setViewIndexColumns<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper) {
+    private setViewIndexColumns<E extends object>(record: EntityTypeProx<E>, item: AttributeMapper, expected: ExpectedMapper) {
         const entityType = record.entityType;
         const entityViewTypes = VIEW_SOURCE_ENTITIES.get(entityType.def) || [];
         entityViewTypes.forEach(elt => {
@@ -91,7 +91,7 @@ class ViewCallback implements TransactionCallback {
         });
     }
 
-    private static addViewIdsToItem(view: ViewProxy, record: ManagedEntity<{}>, item: AttributeMapper) {
+    private static addViewIdsToItem(view: ViewProxy, record: EntityTypeProx<{}>, item: AttributeMapper) {
         view.forEachId((id: ViewIdColumnDef, value: any, valueIsSet: boolean) => {
             if (item.getValue(id) !== value) {
                 record.forEachId(recordId => {

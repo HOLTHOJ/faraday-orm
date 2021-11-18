@@ -27,7 +27,7 @@ import {EntityType} from "./EntityType";
  * Creates a FacetProxy from an Facet/Entity class.
  * @param entityType The Entity type definition.
  */
-export class ManagedFacet<E extends object> {
+export class FacetTypeProxy<E extends object> {
 
     /** The entity instance that is managed. */
     public readonly entity: E

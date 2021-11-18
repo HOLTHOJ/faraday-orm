@@ -69,7 +69,7 @@ export class EntityManagerFactory {
      * so your application typically only needs to create one EntityManager instance per table.
      *
      * Creating a new EntityManager will require the system to parse and load all Faraday entity annotations.
-     * So be aware that this step takes some processing time.
+     * So be aware that this step takes some processing time, and make sure to reuse the EntityManager as much as possible.
      *
      * @param input
      */
@@ -78,10 +78,9 @@ export class EntityManagerFactory {
 
         const tableName = req(mergedInput.tableName, `Missing table name in config.`);
         const tableConfig = req(mergedInput.tableConfig, "Missing table config.");
-        const entityLoader = req(mergedInput.entityLoader, "Missing entity loader.");
         const pathGenerator = req(mergedInput.pathGenerator, `Missing path generator in config.`);
 
-        const tableConfigLoaded = (typeof tableConfig === "object") ? {...tableConfig} : loadTableConfig(tableConfig, entityLoader)
+        const tableConfigLoaded = (typeof tableConfig === "object") ? {...tableConfig} : loadTableConfig(tableConfig, req(mergedInput.entityLoader))
         const tableDef = req(tableConfigLoaded[tableName], `Table name ${tableName} not found in table config.`);
 
         const entityManagerConfig: EntityManagerConfig = {
@@ -97,7 +96,7 @@ export class EntityManagerFactory {
             level: req(mergedInput.logLevel, `Missing logLevel in config.`),
         };
 
-        return new EntityManagerImpl(entityManagerConfig, sessionConfig)
+        return new EntityManagerImpl(entityManagerConfig, sessionConfig);
     }
 
 }

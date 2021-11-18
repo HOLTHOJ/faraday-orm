@@ -27,7 +27,7 @@ import {EntityDef} from "../annotation/Entity";
  * Creates a FacetProxy from an Facet/Entity class.
  * @param entityType The Entity type definition.
  */
-export class ManagedView<E extends object> {
+export class ViewTypeProxy<E extends object> {
 
     /** The view instance that is managed. */
     public readonly view: E

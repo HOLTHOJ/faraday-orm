@@ -32,10 +32,10 @@ import {EntityNotFoundException} from "./EntityNotFoundException";
 import {ResultSet} from "../util/ResultSet";
 import {ConditionMapper} from "../util/mapper/ConditionMapper";
 import {QueryInput} from "./TransactionCallback";
-import {ManagedFacet} from "./ManagedFacet";
-import {ManagedEntity} from "./ManagedEntity";
+import {FacetTypeProxy} from "./ManagedFacet";
+import {EntityTypeProx} from "./ManagedEntity";
 import {EntityManager} from "../EntityManager";
-import {ManagedView} from "./ManagedView";
+import {ViewTypeProxy} from "./ManagedView";
 import {ViewType} from "./ViewType";
 import {VIEW_DEF} from "../view/annotation/View";
 
@@ -122,7 +122,7 @@ export class EntityManagerImpl implements EntityManager {
      */
     public async getItem<E extends object>(entity: E): Promise<E> {
         const key = new AttributeMapper();
-        const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
+        const record = new EntityTypeProx(this.getEntityType(entity.constructor), entity)
 
         // Compile the key paths into their id columns.
         record.compileKeys(this.config.pathGenerator);
@@ -150,7 +150,7 @@ export class EntityManagerImpl implements EntityManager {
      */
     public queryFacet<E extends object>(entity: E, queryName?: string): ResultSet<E> {
         const mapper = new ConditionMapper();
-        const facetProxy = new ManagedFacet(this.getEntityType(entity.constructor), entity, queryName);
+        const facetProxy = new FacetTypeProxy(this.getEntityType(entity.constructor), entity, queryName);
 
         // Compile the table keys.
         facetProxy.compileKeys(this.config.pathGenerator);
@@ -184,7 +184,7 @@ export class EntityManagerImpl implements EntityManager {
      */
     public queryView<E extends object>(view: E, queryName?: string): ResultSet<E> {
         const mapper = new ConditionMapper();
-        const facetProxy = new ManagedView(this.getViewType(view.constructor), view, queryName);
+        const facetProxy = new ViewTypeProxy(this.getViewType(view.constructor), view, queryName);
 
         // Compile the table keys.
         facetProxy.compileKeys(this.config.pathGenerator);
@@ -224,7 +224,7 @@ export class EntityManagerImpl implements EntityManager {
     public async createItem<E extends object>(entity: E): Promise<E> {
         const item = new AttributeMapper();
         const expected = new ExpectedMapper();
-        const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
+        const record = new EntityTypeProx(this.getEntityType(entity.constructor), entity)
 
         // Verify that none of the internal fields are set.
         record.forEachCol((col, value, valueIsSet) => {
@@ -289,7 +289,7 @@ export class EntityManagerImpl implements EntityManager {
     public async deleteItem<E extends object>(entity: E): Promise<E> {
         const key = new AttributeMapper();
         const expected = new ExpectedMapper();
-        const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
+        const record = new EntityTypeProx(this.getEntityType(entity.constructor), entity)
         // const record = EntityManager.internal(entity);
 
         // Set all provided fields as expected.
@@ -331,8 +331,8 @@ export class EntityManagerImpl implements EntityManager {
      * @return A new entity instance containing the new updated item.
      */
     public async updateItem<E extends object>(entity: E, expectedEntity ?: E): Promise<E> {
-        const record = new ManagedEntity(this.getEntityType(entity.constructor), entity)
-        const expected = expectedEntity && new ManagedEntity(this.getEntityType(expectedEntity.constructor), expectedEntity)
+        const record = new EntityTypeProx(this.getEntityType(entity.constructor), entity)
+        const expected = expectedEntity && new EntityTypeProx(this.getEntityType(expectedEntity.constructor), expectedEntity)
 
         // Validate that record & expected are the same type.
         if (typeof expected !== "undefined" && record.entityType !== expected.entityType)
@@ -390,13 +390,13 @@ export class EntityManagerImpl implements EntityManager {
      *
      * @return A new entity instance containing the given attribute values.
      */
-    public loadEntityFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): ManagedEntity<E> {
+    public loadEntityFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): EntityTypeProx<E> {
         const item = new AttributeMapper(data);
         if (entityType.def.name !== item.getRequiredValue(EntityManagerImpl.TYPE_COLUMN)) {
             throw new Error(`Unexpected record type ${entityType}.`);
         }
 
-        const entity = new ManagedEntity(entityType)
+        const entity = new EntityTypeProx(entityType)
         entity.forEachId((id) => {
             entity.setValue(id.propName, item.getValue(id));
         }, false);
@@ -417,9 +417,9 @@ export class EntityManagerImpl implements EntityManager {
         return entity;
     }
 
-    public loadViewFromDB<V extends object>(viewType: ViewType<V>, data: DynamoDB.AttributeMap): ManagedView<V> {
+    public loadViewFromDB<V extends object>(viewType: ViewType<V>, data: DynamoDB.AttributeMap): ViewTypeProxy<V> {
         const item = new AttributeMapper(data);
-        const view = new ManagedView(viewType);
+        const view = new ViewTypeProxy(viewType);
 
         // We always load the keys regardless of projected attributes.
         view.forEachId((id) => {

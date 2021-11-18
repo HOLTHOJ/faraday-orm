@@ -27,7 +27,7 @@ import {EntityType} from "./EntityType";
 /**
  * @internal Implementation of the EntityProxyMethods.
  */
-export class ManagedEntity<E extends object> {
+export class EntityTypeProxy<E extends object> {
 
     /** The entity instance that is managed. */
     public readonly entity: E

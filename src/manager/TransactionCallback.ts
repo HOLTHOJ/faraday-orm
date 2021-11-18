@@ -20,7 +20,7 @@ import {AttributeMapper} from "../util/mapper/AttributeMapper";
 import {ExpectedMapper} from "../util/mapper/ExpectedMapper";
 import {DynamoDB} from "aws-sdk";
 import {ConditionMapper} from "../util/mapper/ConditionMapper";
-import {ManagedEntity} from "./ManagedEntity";
+import {EntityTypeProx} from "./ManagedEntity";
 
 /**
  * The Transaction Manager Callback is part of a framework that allows to extend the Transaction Manager's
@@ -44,11 +44,11 @@ export interface TransactionCallback {
 
     query<E extends object>(chain: TransactionCallbackChain, input: QueryInput<E>): Promise<DynamoDB.Types.QueryOutput>;
 
-    putItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput>;
+    putItem<E extends object>(chain: TransactionCallbackChain, record: EntityTypeProx<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput>;
 
-    deleteItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput>;
+    deleteItem<E extends object>(chain: TransactionCallbackChain, record: EntityTypeProx<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput>;
 
-    updateItem<E extends object>(chain: TransactionCallbackChain, record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.UpdateItemOutput>
+    updateItem<E extends object>(chain: TransactionCallbackChain, record: EntityTypeProx<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.UpdateItemOutput>
 
 }
 
@@ -63,16 +63,16 @@ export interface TransactionCallbackChain {
 
     query<E extends object>(input: QueryInput<E>): Promise<DynamoDB.Types.QueryOutput>;
 
-    putItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput>;
+    putItem<E extends object>(record: EntityTypeProx<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.PutItemOutput>;
 
-    deleteItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput>;
+    deleteItem<E extends object>(record: EntityTypeProx<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.DeleteItemOutput>;
 
-    updateItem<E extends object>(record: ManagedEntity<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.UpdateItemOutput>;
+    updateItem<E extends object>(record: EntityTypeProx<E>, item: AttributeMapper, expected: ExpectedMapper): Promise<DynamoDB.Types.UpdateItemOutput>;
 
 }
 
 export type GetItemInput<E extends object = any> = {
-    readonly record: ManagedEntity<E>,
+    readonly record: EntityTypeProx<E>,
     readonly key: AttributeMapper,
 }
 
