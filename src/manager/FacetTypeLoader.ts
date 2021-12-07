@@ -24,6 +24,11 @@ import {ENTITY_DEF, EntityDef} from "../annotation/Entity";
 import {Class} from "../util";
 import {FacetType} from "./FacetType";
 
+/**
+ * Loads all Facet types for the entities defined in the given table definition.
+ *
+ * @param tableDef
+ */
 export function loadFacetDefs(tableDef: TableDef): Map<string, FacetType[]> {
     return tableDef.entities.reduce((map, elt) => {
         const facetDefs = req(FACET_DEF.get(elt));

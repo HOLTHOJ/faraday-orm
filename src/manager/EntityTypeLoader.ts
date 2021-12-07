@@ -16,7 +16,6 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-
 import {Class} from "../util";
 import {one, req, single, unique} from "../util/Req";
 import {ENTITY_DEF, EntityDef} from "../annotation/Entity";
@@ -30,6 +29,11 @@ import {EntityType} from "./EntityType";
 import {FACET_DEF} from "../annotation/Facet";
 import {loadFacet} from "./FacetTypeLoader";
 
+/**
+ * Loads all the entity types defined in the given table definition.
+ *
+ * @param tableDef
+ */
 export function loadEntityTypes(tableDef: TableDef): Map<string, EntityType> {
     return tableDef.entities.reduce((map, elt) => {
         const entityDef = req(ENTITY_DEF.get(elt));
@@ -37,7 +41,7 @@ export function loadEntityTypes(tableDef: TableDef): Map<string, EntityType> {
         if (map.has(entityDef.name))
             throw new Error(`Duplicate entity type ${entityDef.name}.`);
 
-        const entityType = loadEntity(entityDef, tableDef, elt);
+        const entityType = loadEntityType(entityDef, tableDef, elt);
 
         const facetDefs = FACET_DEF.get(elt);
         const facets = facetDefs?.map(facetDef => loadFacet(entityDef, facetDef, tableDef, elt))
@@ -53,7 +57,7 @@ export function loadEntityTypes(tableDef: TableDef): Map<string, EntityType> {
  * @param tableDef
  * @param ctor
  */
-export function loadEntity<E extends object>(entityDef: EntityDef, tableDef: TableDef, ctor: Class<E>): EntityType {
+export function loadEntityType<E extends object>(entityDef: EntityDef, tableDef: TableDef, ctor: Class<E>): EntityType {
     const cols = ENTITY_COLS.get(ctor) || [];
     const ids = ENTITY_IDS.get(ctor) || [];
     const int = ENTITY_INTERNAL.get(ctor) || [];
@@ -87,8 +91,9 @@ export function loadEntity<E extends object>(entityDef: EntityDef, tableDef: Tab
         col.internal = int.findIndex(elt => elt.propName === col.propName) >= 0
 
         // Default columns to be exposed
-        if (ex.findIndex(elt => elt.propName === col.propName) < 0)
+        if (ex.findIndex(elt => elt.propName === col.propName) < 0) {
             ex.push({propName: col.propName, exposed: true})
+        }
     })
 
     // Enhance classes with ToJSON override.

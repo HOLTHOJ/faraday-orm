@@ -18,7 +18,7 @@
 
 import {SessionManager} from "./manager/SessionManager";
 import {TransactionManager} from "./manager/TransactionManager";
-import {EntityTypeProx} from "./manager/ManagedEntity";
+import {EntityTypeProxy} from "./manager/EntityTypeProxy";
 import {ResultSet} from "./util/ResultSet";
 import {EntityType} from "./manager/EntityType";
 import {DynamoDB} from "aws-sdk";
@@ -160,7 +160,7 @@ export interface EntityManager {
      *
      * @return A new entity instance containing the given attribute values.
      */
-    loadEntityFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): EntityTypeProx<E>
+    loadEntityFromDB<E extends object>(entityType: EntityType<E>, data: DynamoDB.AttributeMap): EntityTypeProxy<E>
 
     /**
      * Gets the entity type from the given entity information.
