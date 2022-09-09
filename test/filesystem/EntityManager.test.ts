@@ -17,7 +17,7 @@
  */
 
 import DBFile from "./model/DBFile";
-import {EntityManagerFactory} from "../../src/EntityManagerFactory";
+import {EntityManagerFactory} from "../../EntityManagerFactory";
 
 describe("test/filesystem", () => {
 

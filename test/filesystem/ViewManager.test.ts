@@ -16,13 +16,13 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {ViewManager} from "../../src/view";
+import {ViewManager} from "../../view";
 import {DBFileView} from "./view/DBFileView";
 import {DBFolderView} from "./view/DBFolderView";
 import {DBExplorerByNameView} from "./view/explorer/DBExplorerByNameView";
 import {DBExplorerByTypeView} from "./view/explorer/DBExplorerByTypeView";
-import {EntityManagerFactory} from "../../src/EntityManagerFactory";
-import {EntityManagerImpl} from "../../src/manager/EntityManagerImpl";
+import {EntityManagerFactory} from "../../EntityManagerFactory";
+import {EntityManagerImpl} from "../../manager/EntityManagerImpl";
 
 describe("test/filesystem", () => {
 

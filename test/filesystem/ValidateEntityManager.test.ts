@@ -16,11 +16,11 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import ValidateTable from "../../src/bin/ValidateTable";
-import {loadTableConfig} from "../../src/manager/TableConfig";
-import {PathToRegexpPathGenerator} from "../../src/util/PathToRegexpPathGenerator";
-import {EntityManagerFactory} from "../../src/EntityManagerFactory";
-import {EntityManagerImpl} from "../../src/manager/EntityManagerImpl";
+import ValidateTable from "../../bin/ValidateTable";
+import {loadTableConfig} from "../../manager/TableConfig";
+import {PathToRegexpPathGenerator} from "../../util/PathToRegexpPathGenerator";
+import {EntityManagerFactory} from "../../EntityManagerFactory";
+import {EntityManagerImpl} from "../../manager/EntityManagerImpl";
 
 describe("test/filesystem", () => {
 

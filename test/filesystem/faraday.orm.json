@@ -10,6 +10,10 @@
       "./model/DBFile",
       "./model/DBFolder"
     ],
+    "views": [
+      "./view/explorer/DBExplorerByNameView",
+      "./view/explorer/DBExplorerByTypeView"
+    ],
     "ids": {
       "PK": "pk",
       "SK": "sk"
@@ -39,6 +43,20 @@
         "index": "pk-lsi5-index",
         "column": "lsi5",
         "projectionType": "KEYS_ONLY"
+      }
+    },
+    "indexes": {
+      "gsi1-index": {
+        "ids": {
+          "PK": "gsi1-pk",
+          "SK": "gsi1-sk"
+        }
+      },
+      "gsi2-index": {
+        "ids": {
+          "PK": "gsi2-pk",
+          "SK": "gsi2-sk"
+        }
       }
     }
   },

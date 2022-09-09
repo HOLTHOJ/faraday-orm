@@ -16,8 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../../src/view";
-import {UNDEFINED} from "../../../../src/util";
+import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../../view";
+import {UNDEFINED} from "../../../../util";
 import DBFile from "../../model/DBFile";
 import DBFolder from "../../model/DBFolder";
 
@@ -26,12 +26,12 @@ import DBFolder from "../../model/DBFolder";
  * - Folders will all be shown at the top, and ordered by name.
  * - Files with the same mime type are ordered by name.
  */
-@View("LSI", "pk-lsi1-index")
+@View("ExplorerByType", "gsi1-index")
 @ViewQuery("list-all", ":account/:directory")
 @ViewQuery("folder-only", ":account/:directory", "0/", "BEGINS_WITH")
 @ViewQuery("file-only", ":account/:directory", "1/", "BEGINS_WITH")
 @ViewQuery("file-mimetype", ":account/:directory", "1/:mimeType/", "BEGINS_WITH")
-export class DBExplorerByTypeView {
+export default class DBExplorerByTypeView {
 
     public account: string = UNDEFINED
 
@@ -41,10 +41,10 @@ export class DBExplorerByTypeView {
 
     public mimeType: string = UNDEFINED;
 
-    @ViewId("PK", "pk")
+    @ViewId("PK")
     public parent: string = UNDEFINED;
 
-    @ViewId("SK", "lsi1")
+    @ViewId("SK")
     public explorer: string = UNDEFINED;
 
     @ViewColumn()

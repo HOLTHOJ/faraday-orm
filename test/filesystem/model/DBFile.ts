@@ -16,14 +16,15 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {UNDEFINED} from "../../../src/util";
-import {NumberConverter, ObjectConverter, StringConverter, StringSetConverter} from "../../../src/converter";
-import {Callback, CallbackOperation, Column, Entity, Id, Internal} from "../../../src/entity";
-import {Editable, EditableOptions} from "../../../src/entity/Editable";
-import {Exposed} from "../../../src/annotation/Exposed";
-import {DEFAULT_FACET, Facet} from "../../../src/annotation/Facet";
-import {SessionConfig} from "../../../src/manager/SessionManager";
-import {FacetId} from "../../../src/annotation/FacetId";
+import {UNDEFINED} from "../../../util";
+import {NumberConverter, ObjectConverter, StringConverter, StringSetConverter} from "../../../converter";
+import {Callback, CallbackOperation, Column, Entity, Id, Internal} from "../../../entity";
+import {Editable, EditableOptions} from "../../../entity/Editable";
+import {Exposed} from "../../../annotation/Exposed";
+import {DEFAULT_FACET, Facet} from "../../../annotation/Facet";
+import {SessionConfig} from "../../../manager/SessionManager";
+import {FacetId} from "../../../annotation/FacetId";
+import {Reference} from "../../../annotation/Delegate";
 
 @Facet(DEFAULT_FACET, DBFile.QUERY.ORDER_BY_SIZE, "BEGINS_WITH", "file/")
 @Facet("LSI1", DBFile.QUERY.ORDER_BY_SIZE, "BEGINS_WITH", "file/")
@@ -32,7 +33,7 @@ import {FacetId} from "../../../src/annotation/FacetId";
 @Facet("LSI2", DBFile.QUERY.FILTER_BY_MIME_TYPE, "EQ", "file/:mimeType")
 
 @Entity("file", {pkPath: ":account/:directory", skPath: "file/:fileName"})
-export default class DBFile extends Editable {
+export default class DBFile {
 
     public static QUERY = {
         ORDER_BY_SIZE: "order-by-size",
@@ -44,6 +45,9 @@ export default class DBFile extends Editable {
     constructor(options ?: EditableOptions) {
         super(options);
     }
+
+    @Reference(Editable)
+    public editable: Editable
 
     @Exposed()
     public account: string = UNDEFINED

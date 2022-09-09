@@ -16,9 +16,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {Entity, Id} from "../../../src/entity";
-import {UNDEFINED} from "../../../src/util";
-import {Versionable} from "../../../src/entity/Versionable";
+import {Entity, Id} from "../../../entity";
+import {UNDEFINED} from "../../../util";
+import {Versionable} from "../../../entity/Versionable";
 
 @Entity("folder", {pkPath: ":account/:directory", skPath: "folder/:folderName"})
 export default class DBFolder extends Versionable {

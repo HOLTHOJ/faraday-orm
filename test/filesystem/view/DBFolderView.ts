@@ -16,15 +16,15 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../src/view";
-import {UNDEFINED} from "../../../src/util";
+import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../view";
+import {UNDEFINED} from "../../../util";
 import DBFolder from "../model/DBFolder";
 
 /**
  * The folder view lists all the Folder entities of a given directory,
  * ordered by their internal ID (which is create-time based).
  */
-@View("default")
+@View("FolderView", "gsi-index-2")
 @ViewQuery("listAll", ":account/:directory", "folder/", "BEGINS_WITH")
 export class DBFolderView {
 
@@ -32,10 +32,10 @@ export class DBFolderView {
 
     public directory: string = UNDEFINED
 
-    @ViewId("PK", "pk")
+    @ViewId("PK")
     public parentId: string = UNDEFINED
 
-    @ViewId("SK", "sk")
+    @ViewId("SK")
     public folderId: string = UNDEFINED
 
     @ViewColumn()

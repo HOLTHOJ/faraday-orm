@@ -7,8 +7,8 @@ The Faraday-ORM project makes use of Typescript classes and decorators to create
 the data stored in the DynamoDB noSQL database. This allows the developers to validate that the data stored and
 retrieved is consistent with the desired datamodel.
 
-* [More on entities](src/entity)
-* [More on views](src/view)
+* [More on entities](entity)
+* [More on views](view)
 
 ### Database config
 

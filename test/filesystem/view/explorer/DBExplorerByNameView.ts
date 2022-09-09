@@ -16,8 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../../src/view";
-import {UNDEFINED} from "../../../../src/util";
+import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../../view";
+import {UNDEFINED} from "../../../../util";
 import DBFile from "../../model/DBFile";
 import DBFolder from "../../model/DBFolder";
 
@@ -28,19 +28,19 @@ import DBFolder from "../../model/DBFolder";
  * Note: Files and folders are already sorted by name using their SK,
  * this view simply merges them together in one single ordered view.
  */
-@View("default")
+@View("ExplorerByName", "gsi2-index")
 @ViewQuery("list-all", ":account/:directory")
 @ViewQuery("filter-name", ":account/:directory", ":name", "BEGINS_WITH")
-export class DBExplorerByNameView {
+export default class DBExplorerByNameView {
 
     public account: string = UNDEFINED
 
     public directory: string = UNDEFINED
 
-    @ViewId("PK", "pk")
+    @ViewId("PK")
     public parent: string = UNDEFINED;
 
-    @ViewId("SK", "sk")
+    @ViewId("SK")
     public name: string = UNDEFINED;
 
     @ViewColumn()

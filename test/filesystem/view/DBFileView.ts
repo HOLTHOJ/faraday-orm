@@ -16,8 +16,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../src/view";
-import {UNDEFINED} from "../../../src/util";
+import {View, ViewColumn, ViewId, ViewQuery, ViewSource} from "../../../view";
+import {UNDEFINED} from "../../../util";
 import DBFile from "../model/DBFile";
 
 @View("default")
